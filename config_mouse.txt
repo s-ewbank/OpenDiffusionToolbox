@@ -1,0 +1,47 @@
+----------------------------------------------------
+----------------------------------------------------
+This is a file where you need to input some paths for the scripts to use.
+No quotation marks or anything like that.
+Generated on Fri Nov 15 13:19:13 PST 2024.
+----------------------------------------------------
+PATHS RELATED TO THE DATA
+----------------------------------------------------
+1. Path to root data directory
+rootdir=/scratch/groups/rairan/NODDI/24-11-07/
+
+2. Path to groups file
+groups_file=/home/groups/rairan/NODDI/SCRIPTS2/groups_mouse.csv
+
+----------------------------------------------------
+PATHS RELATED TO SCRIPT INSTALLATION
+----------------------------------------------------
+3. Path to directory containing the scripts
+scripts_dir=/home/groups/rairan/NODDI/SCRIPTS2/scripts/
+
+4. Path to singularity containers
+mdt_container_path=/home/groups/rairan/NODDI/Docker/mdt_docker.simg
+miracl_container_path=/scratch/groups/rairan/NODDI/MIRACL/miracl_latest.sif
+dsi_container_path=/home/groups/rairan/NODDI/DSI/dsistudio_unlhcc.sif
+
+5. Paths for slurm job notice emails and out files
+mailtype=NONE
+mailuser=snewbank@stanford.edu
+slurm_out_path=/home/groups/rairan/NODDI/slurm_outputs/
+
+----------------------------------------------------
+SETTINGS
+----------------------------------------------------
+6. Organism being imaged (human, mouse, or rat)
+organism=mouse
+
+7. Diffusion metrics to generate (comma separated; options include: FA, MD, AD, RD, QA, ODI, NDI)
+volumes=FA,MD,ODI,NDI
+
+8. Should MP-PCA denoising be applied to the diffusion image?
+do_mppca=1
+
+9. Should the 'bad slice removal' script be applied to the diffusion image?
+do_slice=1
+
+----------------------------------------------------
+----------------------------------------------------
