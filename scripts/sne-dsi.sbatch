@@ -5,7 +5,7 @@
 #SBATCH --time 8:00:00
 #SBATCH --mail-type=NONE
 #SBATCH --mail-user=snewbank@stanford.edu
-#SBATCH --output=/home/groups/rairan/NODDI/slurm_outputs/slurm-%j.out
+#SBATCH --output=/home/groups/rairan/NODDI/slurm_outputs//slurm-%j.out
 #
 
 rootdir="/scratch/groups/rairan/NODDI/24-08-31/batch_volumes_raw_240831/"

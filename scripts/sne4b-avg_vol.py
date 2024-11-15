@@ -8,6 +8,16 @@ import numpy as np
 path = sys.argv[1]
 volume_type = sys.argv[2]
 mask = sys.argv[3]
+organism = sys.argv[4]
+
+if organism=="mouse":
+    cut_coords=np.arange(-13,-1,1.5)
+elif organism=="rat":
+    cut_coords=np.arange(-13,6,2.5)
+elif organism=="human":
+    cut_coords=np.arange(-60,60,20)
+
+
 volumes = [path+"/"+volume_type+"/"+i for i in os.listdir(path+"/"+volume_type)]
 
 ### New approach
@@ -42,9 +52,9 @@ nib.save(avg_img_masked, masked_output_name)
 
 nilearn.plotting.plot_img(avg_img,title="Average "+volume_type,black_bg=True,cmap="gray",
     draw_cross=False,annotate=False,output_file=path+"avg_"+volume_type+".png",
-    display_mode="y",cut_coords=np.arange(-13,-1,1.5))
+    display_mode="y",cut_coords=cut_coords)
     
 
 nilearn.plotting.plot_img(avg_img_masked,title="Average "+volume_type,black_bg=True,cmap="gray",
     draw_cross=False,annotate=False,output_file=path+"avg_"+volume_type+"_masked.png",
-    display_mode="y",cut_coords=np.arange(-13,-1,1.5))
+    display_mode="y",cut_coords=cut_coords)

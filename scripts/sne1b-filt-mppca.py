@@ -15,7 +15,15 @@ import sys
 from scipy.ndimage import gaussian_filter
 
 path = sys.argv[1]
+dwi = sys.argv[2]
+bval = sys.argv[3]
+bvec = sys.argv[4]
+do_mppca = int(sys.argv[5])
+do_slices = int(sys.argv[6])
+patch_rad = int(sys.argv[7])
 
+print(do_mppca)
+print(do_slices)
 def bad_slices_out(orig_image_path,
                    proc_image_path,
                    bvec_path,
@@ -26,10 +34,10 @@ def bad_slices_out(orig_image_path,
     
     bval=np.loadtxt(bval_path)
     bval_clip=np.round(bval/500)*500
-    
-    b0=np.argwhere(bval_clip==0).T[0]
-    b1000=np.argwhere(bval_clip==1000).T[0]
-    b2500=np.argwhere(bval_clip==2500).T[0]
+    bvals_possible=sorted(np.unique(bval_clip))
+    bval_masks=[]
+    for bval_i in bvals_possible:
+        bval_masks.append(np.argwhere(bval_clip==bval_i).T[0])
     
     bvec=np.loadtxt(bvec_path)
     
@@ -49,7 +57,7 @@ def bad_slices_out(orig_image_path,
     for slice_i in range(z_dim):
         new_img_data=np.zeros_like(data)
         keep_slice=[]
-        for bval_i in (b0,b1000,b2500):
+        for bval_i in bval_masks:
             hi_q_img=np.quantile(data[:,:,slice_i,bval_i],hi_q,axis=2)
             lo_q_img=np.quantile(data[:,:,slice_i,bval_i],lo_q,axis=2)
             for i in bval_i:
@@ -85,33 +93,53 @@ def bad_slices_out(orig_image_path,
         log_df = log_df.astype(int)
         log_df.to_csv(path+'/slices/filt_log.csv')
 
-orig_image_path=[path+"/"+i for i in os.listdir(path) if ((i.endswith(".nii.gz")) and ("1_DTI" in i))][0]
-bvec_path=[path+"/"+i for i in os.listdir(path) if (i.endswith(".bvec"))][0]
-bval_path=[path+"/"+i for i in os.listdir(path) if (i.endswith(".bval"))][0]
+orig_image_path = path + "/" + dwi
+bvec_path = path + "/" + bvec
+bval_path = path + "/" + bval
 
 print(f"Bval path is {bval_path}")
 print(f"Bvec path is {bvec_path}")
 
-bad_slices_out(orig_image_path,
-               orig_image_path, #proc_image
-               bvec_path,
-               bval_path,
-               type="save_chopped_img")
-
-print("MP-PCA - Loading nifti")
-data, affine, img = load_nifti(path+"/filt.nii.gz", return_img=True)
-
-print("MP-PCA - Doing mppca")
-t = time()
-denoised_arr = mppca(data, patch_radius=2)
-print("Time taken for local MP-PCA ", -t + time())
-nib.save(nib.Nifti1Image(denoised_arr, affine), path+"/filt_mppca.nii.gz")
-
-bad_slices_out(orig_image_path,
-               path+"/filt_mppca.nii.gz",
-               bvec_path,
-               bval_path,
-               type="save_slices")
+if ((do_mppca==1) and (do_slices==1)):
+    bad_slices_out(orig_image_path,
+                   orig_image_path, #proc_image
+                   bvec_path,
+                   bval_path,
+                   type="save_chopped_img")
+    
+    print("MP-PCA - Loading nifti")
+    data, affine, img = load_nifti(path+"/filt.nii.gz", return_img=True)
+    
+    print("MP-PCA - Doing mppca")
+    t = time()
+    denoised_arr = mppca(data, patch_radius=patch_rad)
+    print("Time taken for local MP-PCA ", -t + time())
+    nib.save(nib.Nifti1Image(denoised_arr, affine), path+"/filt_mppca.nii.gz")
+    
+    bad_slices_out(orig_image_path,
+                   path+"/filt_mppca.nii.gz",
+                   bvec_path,
+                   bval_path,
+                   type="save_slices")
+                   
+elif ((do_mppca==1) and (do_slices==0)):
+    data, affine, img = load_nifti(orig_image_path, return_img=True)
+    
+    print("MP-PCA - Doing mppca")
+    t = time()
+    denoised_arr = mppca(data, patch_radius=patch_rad)
+    print("Time taken for local MP-PCA ", -t + time())
+    nib.save(nib.Nifti1Image(denoised_arr, affine), path+"/mppca.nii.gz")
+    
+elif ((do_mppca==0) and (do_slices==1)):
+    bad_slices_out(orig_image_path,
+                   orig_image_path, #proc_image
+                   bvec_path,
+                   bval_path,
+                   type="save_slices")
+    
+    print("MP-PCA - Loading nifti")
+    data, affine, img = load_nifti(path+"/filt.nii.gz", return_img=True)
                
                
 
@@ -123,7 +151,10 @@ blurred_mask_data = gaussian_filter(mask_data_sum, sigma=4)
 thr=np.quantile(blurred_mask_data,0.6)
 blurred_mask_data=np.array(blurred_mask_data>thr,dtype=np.int16)
 
-for i in range(z_dim):
-    mask_i=np.zeros_like(blurred_mask_data)
-    mask_i[:,:,i]=blurred_mask_data[:,:,i]
-    nib.save(nib.Nifti1Image(mask_i, mask_img.affine,dtype=np.int16), path+f"/slices/mask_{i}.nii.gz")
+if do_slices==1:
+    for i in range(z_dim):
+        mask_i=np.zeros_like(blurred_mask_data)
+        mask_i[:,:,i]=blurred_mask_data[:,:,i]
+        nib.save(nib.Nifti1Image(mask_i, mask_img.affine,dtype=np.int16), path+f"/slices/mask_{i}.nii.gz")
+else:
+   nib.save(nib.Nifti1Image(blurred_mask_data, mask_img.affine,dtype=np.int16), path+"/mask.nii.gz")

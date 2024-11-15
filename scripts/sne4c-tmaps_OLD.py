@@ -32,33 +32,124 @@ rootdir=sys.argv[1]
 mask_path=sys.argv[2]
 output_dir=sys.argv[3]
 avg_vol_dir=sys.argv[4]
-groups_file=sys.argv[5]
-organism=sys.argv[6]
-generate_tmaps=int(sys.argv[7])
-do_classifier=int(sys.argv[8])
-vt=sys.argv[9]
-delta_or_baseline=int(sys.argv[10])
+generate_tmaps=int(sys.argv[5])
+do_classifier=int(sys.argv[6])
+vt=sys.argv[7]
+delta_or_baseline=int(sys.argv[8])
 smooth=True
 
-if organism=="mouse":
-    cut_coords=np.arange(-13,-1,1.5)
-    fwhm=0.1
-elif organism=="rat":
-    cut_coords=np.arange(-13,6,2.5)
-    fwhm=0.5
-elif organism=="human":
-    cut_coords=np.arange(-60,60,20)
-    fwhm=5
+groups_dict={}
 
-groups_df=pd.read_csv(groups_file)
-baseline_df=groups_df[groups_df["timepoint"]==0]
-groups=baseline_df["group"].unique()
+groups_dict["F_sal"]=[['F1_Saline_Post_-_230511170358_output_miracl_output', 'F1_Saline_Pre_-_230510161927_output_miracl_output'],
+['F10_Saline_Post_-_231116160102_output_miracl_output', 'F10_Saline_Pre_-_231115144642_output_miracl_output'],
+['F12_Saline_Post_-_231201151809_output_miracl_output', 'F12_Saline_Pre_-_231130141524_output_miracl_output'],
+['F14_Saline_Post_-_231206130048_output_miracl_output', 'F14_Saline_Pre_-_231205121554_output_miracl_output'],
+['F16_Saline_Post_-_231206143436_output_miracl_output', 'F16_Saline_Pre_-_231205140531_output_miracl_output'],
+['F18_Saline_Post_-_240612124123_output_miracl_output', 'F18_Saline_Pre_-_240611122412_output_miracl_output'],
+['F3_Saline_Post_-_230511185433_output_miracl_output'],
+['F5_Saline_Post_-_230516171413_output_miracl_output', 'F5_Saline_Pre_-_230515172819_output_miracl_output'],
+['F6_Saline_Post_-_231031154459_output_miracl_output', 'F6_Saline_Pre_-_231030151331_output_miracl_output'],
+['F8_Saline_Post_-_231115130042_output_miracl_output', 'F8_Saline_Pre_-_231114115523_output_miracl_output']]
+
+groups_dict["M_sal"]=[['M1_Saline_Post_-_230503154113_output_miracl_output', 'M1_Saline_Pre_-_230502141952_output_miracl_output'],
+['M10_Saline_Post_-_230929112838_output_miracl_output', 'M10_Saline_Pre_-_230928104652_output_miracl_output'],
+#['M11_Saline_Post_-_230929121443_output_miracl_output', 'M11_Saline_Pre_-_230928115435_output_miracl_output'],
+['M14_Saline_Post_-_230929144614_output_miracl_output', 'M14_Saline_Pre_-_230928144623_output_miracl_output'],
+['M30_Saline_Post_-_231115111718_output_miracl_output', 'M30_Saline_Pre_-_231114101308_output_miracl_output'],
+['M32_Saline_Post_-_240626133834_output_miracl_output', 'M32_Pre_-_240625130010_output_miracl_output'],
+['M34_Saline_Post_-_240626151500_output_miracl_output', 'M34_Pre_-_240625144219_output_miracl_output'],
+['M36_Saline_Post_-_240626164724_output_miracl_output', 'M36_Saline_Pre_-_240625162055_output_miracl_output'],
+['M6_Saline_Post_-_230516162559_output_miracl_output', 'M6_Saline_Pre_-_230515153953_output_miracl_output'],
+['M9_Saline_Post_-_230921175429_output_miracl_output', 'M9_Saline_Pre_-_230920173827_output_miracl_output']]
+
+
+groups_dict["F_ket"]=[['F11_Ketamine_Post_-_231116164718_output_miracl_output', 'F11_Ketamine_Pre_-_231115153837_output_miracl_output'],
+['F13_Ketamine_Post_-_231201160856_output_miracl_output', 'F13_Ketamine_Pre_-_231130150424_output_miracl_output'],
+['F15_Ketamine_Post_-_231206134814_output_miracl_output', 'F15_Ketamine_Pre_-_231205132041_output_miracl_output'],
+['F17_Ketamine_Post_-_231207181615_output_miracl_output', 'F17_Ketamine_Pre_-_231206152252_output_miracl_output'],
+['F19_Ketamine_Post_-_240612133057_output_miracl_output', 'F19_Ketamine_Pre_-_240611131933_output_miracl_output'],
+['F2_Ketamine_Post_-_230511180228_output_miracl_output', 'F2_Ketamine_Pre_-_230510171827_output_miracl_output'],
+['F20_Ketamine_Post_-_240612141639_output_miracl_output', 'F20_Ketamine_Pre_-_240611140858_output_miracl_output'],
+['F4_Ketamine_Post_-_230511194356_output_miracl_output'],
+['F7_Ketamine_Post_-_231031163058_output_miracl_output', 'F7_Ketamine_Pre_-_231030160709_output_miracl_output'],
+['F9_Ketamine_Post_-_231116151024_output_miracl_output', 'F9_Ketamine_Pre_-_231115135700_output_miracl_output']]
+
+groups_dict["M_ket"]=[['M12_Ketamine_Post_-_230929130748_output_miracl_output', 'M12_Ketamine_Pre_-_230928124516_output_miracl_output'],
+#['M13_Ketamine_Post_-_230929135734_output_miracl_output', 'M13_Ketamine_Pre_-_230928135856_output_miracl_output'],
+['M15_Ketamine_Post_-_231004150847_output_miracl_output', 'M15_Ketamine_Pre_-_231003150421_output_miracl_output'],
+['M3_Ketamine_Post_-_230503165331_output_miracl_output', 'M3_Ketamine_Pre_-_230502153909_output_miracl_output'],
+#['M31_Ketamine_Post_-_231115120515_output_miracl_output', 'M31_Ketamine_Pre_-_231114110604_output_miracl_output'],
+['M33_Ketamine_Post_-_240626142640_output_miracl_output', 'M33_Pre_-_240625135513_output_miracl_output'],
+['M35_Ketamine_Post_-_240626160000_output_miracl_output', 'M35_Ketamine_Pre_-_240625153202_output_miracl_output'],
+['M5_Ketamine_Post_-_230516153444_output_miracl_output', 'M5_Ketamine_Pre_-_230515144803_output_miracl_output'],
+['M7_Ketamine_Pre_-_230515163507_output_miracl_output']]#,
+#['M8_Ketamine_Post_-_230921162519_output_miracl_output', 'M8_Ketamine_Pre2_-_230920162549_output_miracl_output']]
+
+groups_dict["M_ntxsal"]=[['M16_Ntx_Saline_Post_-_231020114653_output_miracl_output', 'M16_Ntx_Saline_Pre_-_231019104806_output_miracl_output'],
+#['M18_Ntx_Saline_Post_-_231020132350_output_miracl_output', 'M18_Ntx_Saline_Pre_-_231019123325_output_miracl_output'],
+['M20_Ntx_Saline_Post_-_231020151108_output_miracl_output', 'M20_Ntx_Saline_Pre_-_231019142309_output_miracl_output'],
+['M22_Ntx_Saline_Post_-_231023135135_output_miracl_output', 'M22_Ntx_Saline_Pre_-_231022134714_output_miracl_output'],
+['M24_Ntx_Saline_Post_-_231023152108_output_miracl_output', 'M24_Ntx_Saline_Pre_-_231022153049_output_miracl_output'],
+['M26_Ntx_Saline_Post_-_231025154350_output_miracl_output'],
+#['M28_Ntx_Saline_Post_-_231025171718_output_miracl_output','M28_Ntx_Saline_-_231024165055_output_miracl_output'],
+['M37_Ntx_Saline_Post_-_240628130321_output_miracl_output', 'M37_Ntx_Saline_Pre_-_240627123821_output_miracl_output']]
+
+groups_dict["M_ntxket"]=[#['M17_Ntx_Ketamine_Post_-_231020123958_output_miracl_output', 'M17_Ntx_Ketamine_Pre_-_231019113534_output_miracl_output'],
+['M19_Ntx_Ketamine_Post_-_231020142121_output_miracl_output', 'M19_Ntx_Ketamine_Pre_-_231019132925_output_miracl_output'],
+['M21_Ntx_Ketamine_Post_-_231023130225_output_miracl_output', 'M21_Ntx_Ketamine_Pre_-_231022130109_output_miracl_output'],
+#['M23_Ntx_Ketamine_Post_-_231023143630_output_miracl_output', 'M23_Ntx_Ketamine_Pre_-_231022143802_output_miracl_output'],
+['M25_Ntx_Ketamine_Post_-_231025144831_output_miracl_output','M25_Ntx_Ketamine_-_231024142414_output_miracl_output'],
+['M27_Ntx_Ketamine_Post_-_231025163043_output_miracl_output','M27_Ntx_Ketamine_-_231024160047_output_miracl_output'],
+['M29_Ntx_Ketamine_Post_-_231025180325_output_miracl_output','M29_Ntx_Ketamine_-_231024173840_output_miracl_output'],
+['M38_Ntx_Ketamine_Post_-_240628135334_output_miracl_output', 'M38_Ntx_Ketamine_Pre_-_240627132738_output_miracl_output']]
+
+groups_dict["SAPAP_ket"]=[["A1_Post_-_240314141001_output_miracl_output","A1_Pre_-_240311161724_output_miracl_output"],
+["B1_Post_-_240315090933_output_miracl_output","B1_Pre_-_240312161728_output_miracl_output"],
+#["B2_Post_-_240315100939_output_miracl_output","B2_Pre_-_240312171134_output_miracl_output"],
+["C1_Post_-_240425101429_output_miracl_output","C1_Pre_-_240422124816_output_miracl_output"],
+["C3_Post_-_240425120702_output_miracl_output","C3_Pre_-_240422143307_output_miracl_output"],
+["D3_Post_-_240627160403_output_miracl_output","D3_Pre_-_240624143605_output_miracl_output"]]
+
+groups_dict["SAPAP_sal"]=[["A2_Post_-_240314151334_output_miracl_output","A2_Pre_-_240311174322_output_miracl_output"],
+#["A3_Post_-_240314160732_output_miracl_output","A3_Pre_-_240311183637_output_miracl_output"],
+["B3_Post_-_240315105400_output_miracl_output","B3_Pre_-_240312181033_output_miracl_output"],
+["C2_Post_-_240425110942_output_miracl_output","C2_Pre_-_240422133749_output_miracl_output"],
+["D1_Post_-_240627141802_output_miracl_output","D1_Pre_-_240624124601_output_miracl_output"],
+["D2_Post_-_240627151159_output_miracl_output","D2_Pre_-_240624134154_output_miracl_output"]]
+
+groups_dict["WT_ket"]=[["E3_Post_-_240711173647_output_miracl_output","E3_Pre_-_240708174437_output_miracl_output"],
+["E1_Post_-_240711155906_output_miracl_output","E1_Pre_-_240708160722_output_miracl_output"],
+["E2_Post_-_240711164620_output_miracl_output","E2_Pre_-_240708165714_output_miracl_output"]]
+
+groups_dict["WT_sal"]=[["G3_Post_-_240726152215_output_miracl_output","G3_Pre_-_240723162349_output_miracl_output"],
+["G1_Post_-_240726134657_output_miracl_output","G1_Pre_-_240723143453_output_miracl_output"],
+["G2_Post_-_240726143259_output_miracl_output","G2_Pre_-_240723152530_output_miracl_output"]]
 
 baseline_groups_dict={}
-for group in groups:
-    group_files=baseline_df[baseline_df["group"]==group]["filename"].to_list()
-    group_files=[i+"_output_reg_output" for i in group_files]
-    baseline_groups_dict[group]=group_files
+
+M_keys=["M_ket","M_sal"]#,"M_ntxsal","M_ntxket"]
+M=[]
+for key in M_keys:
+    M=M+[i[1] for i in groups_dict[key] if len(i)>1]
+baseline_groups_dict["M"]=M
+
+F_keys=["F_sal","F_ket"]
+F=[]
+for key in F_keys:
+    F=F+[i[1] for i in groups_dict[key] if len(i)>1]
+baseline_groups_dict["F"]=F
+
+SAPAP_keys=["SAPAP_ket","SAPAP_sal"]
+SAPAP=[]
+for key in SAPAP_keys:
+    SAPAP=SAPAP+[i[1] for i in groups_dict[key] if len(i)>1]
+baseline_groups_dict["SAPAP"]=SAPAP
+
+WT_keys=["WT_ket","WT_sal"]
+WT=[]
+for key in WT_keys:
+    WT=WT+[i[1] for i in groups_dict[key] if len(i)>1]
+baseline_groups_dict["WT"]=WT
 
 def downsample_image(img, downsample_factor):
     original_affine = img.affine
@@ -121,8 +212,7 @@ def threshold_and_cluster(pmap_img, tmap_img, voxel_threshold, voxel_cluster_cou
                 
     if n_labels == 0:
         print("No clusters identified!")
-        final_map = np.zeros_like(tmap_data)
-        final_map = nib.Nifti1Image(final_map, affine=pmap_img.affine, header=pmap_img.header)
+        final_map = []
     else:
         final_map = nilearn.image.math_img("tmap * labels", tmap=tmap_img, labels=final_labels_img)
     print(f"identified {n_pos_clust} positive clusters and {n_neg_clust} negative clusters")
@@ -182,6 +272,7 @@ if delta_or_baseline==0:
                         mask_loaded=1
                         
                     if smooth==True:
+                        fwhm=0.1
                         subj_post_vol=nilearn.image.smooth_img(subj_post_vol, fwhm)
                         subj_pre_vol=nilearn.image.smooth_img(subj_pre_vol, fwhm)
                     else:
@@ -210,7 +301,7 @@ if delta_or_baseline==0:
                         vmax=0.0004
                     nilearn.plotting.plot_img(masked_diff_img,title="Delta "+voltype+" " +subj_id+" - "+group,cmap="seismic",
                         draw_cross=False,annotate=False,vmin=vmin,vmax=vmax,output_file=output_dir+"/individual_diffs/delta_"+voltype+"_"+subj_id+"_"+group+".png",
-                        display_mode="y",cut_coords=cut_coords)
+                        display_mode="y",cut_coords=np.arange(-13,-1,1.5))
                 
                 #Compute mean diff
                 mean_diff=nilearn.image.mean_img(diff_imgs)
@@ -233,7 +324,7 @@ if delta_or_baseline==0:
                     vmax=0.0004
                 nilearn.plotting.plot_img(mean_diff,title="Delta "+voltype+" " +group,cmap="seismic",
                     draw_cross=False,annotate=False,vmin=vmin,vmax=vmax,output_file=output_dir+"/delta_"+voltype+"_"+group+".png",
-                    display_mode="y",cut_coords=cut_coords,colorbar=True)
+                    display_mode="y",cut_coords=np.arange(-13,-1,1.5),colorbar=True)
                     
             tmap_name="tmap_delta_"+voltype+"group1-"+groups[0]+"group2-"+groups[1]
             
@@ -275,12 +366,11 @@ if delta_or_baseline==0:
             tmap_img = nib.Nifti1Image(tmap, affine=affine, header=header)
             tmap_img.to_filename(output_dir+"/"+tmap_name+".nii.gz")
             pmap_img = nib.Nifti1Image(pmap, affine=affine, header=header)
-            print(np.min(pmap_img))
             #adjusted_pmap_img = nib.Nifti1Image(adjusted_pmap, affine=affine, header=header)
             
             nilearn.plotting.plot_img(tmap_img,title="T-Score Delta "+voltype+" " +groups[0]+ " vs. "+groups[1],cmap="seismic",
                 draw_cross=False,annotate=False,vmin=-6,vmax=6,output_file=output_dir+"/"+tmap_name+".png",black_bg=True,
-                display_mode="y",cut_coords=cut_coords,colorbar=True)
+                display_mode="y",cut_coords=np.arange(-13,-1,1.5),colorbar=True)
             
             print("Done computing t-test for volume " + voltype + ", doing clustering")
             
@@ -299,7 +389,7 @@ if delta_or_baseline==0:
             
             # custom cmap
             nilearn.plotting.plot_stat_map(final_tmap_img, bg_img=template_img, title="Thresh T-Score Delta "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
-                                           threshold=voxel_threshold, cut_coords=cut_coords,cmap="seismic",black_bg=True,
+                                           threshold=voxel_threshold, cut_coords=np.arange(-13,-1,1.5),cmap="seismic",black_bg=True,
                                            output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=12)
             # If using pop, you can do: "/thresholded_"+tmap_name+"_pop"+str(pop_number)+".png"
             
@@ -315,8 +405,11 @@ elif delta_or_baseline==1:
     if generate_tmaps==1:
         mask_data = np.squeeze(nib.load(mask_path).get_fdata())
         
-        #cmap="PiYG_r"
-        cmap="BrBG_r"
+        groups=["F","M"]
+        cmap="PiYG_r"
+        
+        #groups=["SAPAP","WT"]
+        #cmap="BrBG_r"
         
         voltypes=[vt]
         
@@ -335,11 +428,11 @@ elif delta_or_baseline==1:
                     subj_id=baseline_groups_dict[group][subj].split("_")[0]
                     subj_dir=baseline_groups_dict[group][subj]
                     subj_vol=[rootdir+"/"+subj_dir+"/"+i for i in os.listdir(rootdir+"/"+subj_dir) if "_"+voltype+"_reg.nii.gz" in i][0]
-                    print(subj_vol)
                     if mask_loaded==0:
                         mask=nilearn.image.new_img_like(nib.load(subj_vol), mask_data)
                         mask_loaded=1
                     if smooth==True:
+                        fwhm=0.1
                         subj_vol=nilearn.image.smooth_img(subj_vol, fwhm)
                     else:
                         subj_vol=nib.load(subj_vol)
@@ -393,17 +486,18 @@ elif delta_or_baseline==1:
         
         nilearn.plotting.plot_img(tmap_img,title="T-Score Delta "+voltype+" " +groups[0]+ " vs. "+groups[1],cmap=cmap,
             draw_cross=False,annotate=False,vmin=-6,vmax=6,output_file=output_dir+"/"+tmap_name+".png",black_bg=True,
-            display_mode="y",cut_coords=cut_coords,colorbar=True)
+            display_mode="y",cut_coords=np.arange(-13,-1,1.5),colorbar=True)
         
         print("Done computing t-test for volume " + voltype + ", doing clustering")
-        print(pmap)
-        voxel_threshold = 0.9
-        cluster_size = 10
+        
+        voxel_threshold = 0.05
+        cluster_size = 200
         final_tmap_img, labels_img, n_pos_clust, n_neg_clust = threshold_and_cluster(pmap_img, tmap_img, voxel_threshold, cluster_size)
         
         clust_n.append(pd.DataFrame({"pos": [n_pos_clust], "neg": [n_neg_clust]},index=[str("clust_"+voltype+"group1-"+groups[0]+"group2-"+groups[1])]))
         
         template_img = nib.load(avg_vol_dir+"/avg_"+voltype+"_masked.nii.gz")
+        
         
         print("Saving result for " + voltype + " in output dir as " + tmap_name+".nii.gz and "+tmap_name+".png")
         
@@ -411,7 +505,7 @@ elif delta_or_baseline==1:
         
         # custom cmap
         nilearn.plotting.plot_stat_map(final_tmap_img, bg_img=template_img, title="Thresh T-Score Baseline "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
-                                       threshold=voxel_threshold, cut_coords=cut_coords,cmap=cmap,black_bg=True,
+                                       threshold=voxel_threshold, cut_coords=np.arange(-13,-1,1.5),cmap=cmap,black_bg=True,
                                        output_file=output_dir+"/baseline_thresholded_"+tmap_name+".png",dim=1,vmax=6)
         # If using pop, you can do: "/thresholded_"+tmap_name+"_pop"+str(pop_number)+".png"
         
