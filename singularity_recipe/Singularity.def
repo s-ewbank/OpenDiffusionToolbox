@@ -1,0 +1,146 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+  Author Sedona Ewbank
+  Version v1.0
+
+%post
+  # Set the frontend to non-interactive to prevent prompts during installation
+  export DEBIAN_FRONTEND=noninteractive
+  
+  # Install necessary system dependencies for building ANTs, FSL, DSI Studio, and MDT
+  apt update && apt upgrade -y && \
+  apt install -y \
+    unzip \
+    wget \
+    git \
+    cmake \
+    gcc \
+    g++ \
+    make \
+    curl \
+    ninja-build \
+    python3-pip \
+    python3-pyopencl \
+    python3-numpy \
+    python3-nibabel \
+    python3-pyqt5 \
+    python3-matplotlib \
+    python3-yaml \
+    python3-argcomplete \
+    libpng-dev \
+    libfreetype6-dev \
+    libxft-dev \
+    bash \
+    python3-setuptools \
+    tzdata \
+    zlib1g-dev \
+    libglu1-mesa-dev \
+    qt6-base-dev \
+    libqt6charts6-dev \
+    libqt6opengl6-dev \
+    qt6-image-formats-plugins \
+    && rm -rf /var/lib/apt/lists/*
+
+  # Download and install Miniconda manually
+  wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
+  bash /tmp/miniconda.sh -b -p /opt/conda
+  rm /tmp/miniconda.sh
+  export PATH=/opt/conda/bin:$PATH
+
+  # Update Conda in the base environment
+  /opt/conda/bin/conda update -n base -c defaults conda -y
+
+  # Install zstandard in the base environment for .conda package support
+  /opt/conda/bin/conda install -n base -y -c conda-forge zstandard
+
+  # Initialize Conda for bash (ensures 'conda activate' works in build)
+  /opt/conda/bin/conda init bash
+
+  # Create a new Conda environment and install required Python packages
+  /opt/conda/bin/conda create -n diffusionmritoolkit -y python=3.9
+  /opt/conda/bin/conda install -y -n diffusionmritoolkit -c conda-forge zstandard \
+    numpy \
+    pandas \
+    nilearn \
+    nibabel \
+    scipy \
+    dipy \
+    matplotlib \
+    scikit-learn \
+    statsmodels
+
+  # Activate the Conda environment before installing MDT dependencies
+  /opt/conda/bin/conda run -n diffusionmritoolkit pip install tatsu mdt siphash24 pyqt6==6.4.2
+
+  sed -i 's/.get_data()/.get_fdata()/g' /opt/conda/envs/diffusionmritoolkit/lib/python3.9/site-packages/mdt/utils.py
+  sed -i 's/.get_data()/.get_fdata()/g' /opt/conda/envs/diffusionmritoolkit/lib/python3.9/site-packages/mdt/lib/input_data.py
+
+  # Install DSI Studio from the provided URL
+  wget https://github.com/frankyeh/DSI-Studio/releases/download/2024.06.12/dsi_studio_ubuntu2204.zip -O /tmp/dsi_studio.zip
+  unzip /tmp/dsi_studio.zip -d /opt/dsi_studio
+  rm /tmp/dsi_studio.zip
+  ln -s /opt/dsi_studio/dsi-studio/dsi_studio /usr/local/bin/dsi_studio
+  
+  # Install ANTs (Advanced Normalization Tools)
+  mkdir /opt/ants && cd /opt/ants
+  git clone https://github.com/ANTsX/ANTs.git
+  mkdir build && cd build
+  cmake \
+      -DCMAKE_INSTALL_PREFIX=/opt/ants/install \
+      -DBUILD_TESTING=OFF \
+      -DBUILD_EXAMPLES=OFF \
+      -DRUN_LONG_TESTS=OFF \
+      -DRUN_SHORT_TESTS=OFF \
+      ../ANTs | tee cmake.log
+  make -j 4 | tee build.log
+  make install | tee install.log
+  ln -s /opt/ants/build/ANTS-build/Examples/* /usr/local/bin/
+
+  # Install FSL using the provided Python installer, with non-interactive flags
+  wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fslconda/releases/fslinstaller.py -O /tmp/fslinstaller.py
+  export FSLDIR=/opt/fsl
+  python3 /tmp/fslinstaller.py --skip_registration --ignore-fakeroot-command <<EOF
+  /opt/fsl
+  EOF
+
+  # Download atlases with wget
+  FILE_ID="1YKe3XSy9bUWtRTKepezo_UOtbWRGhP07"
+
+  # Download the file from Google Drive using wget
+  # First, get the confirmation token for large files
+  CONFIRM=$(wget --quiet --save-cookies cookies.txt --keep-session-cookies --no-check-certificate "https://drive.google.com/uc?export=download&id=$FILE_ID" -O- | \
+    sed -n 's/.*confirm=\([^&]*\).*/\1/p')
+    
+  # Now, download the file using the confirmation token
+  wget --load-cookies cookies.txt "https://drive.google.com/uc?export=download&confirm=$CONFIRM&id=$FILE_ID" -O /path/to/your/container/destination/my_archive.zip
+
+  # Clean up cookies
+  rm -f cookies.txt
+
+  # Clean up Conda caches to reduce container size
+  /opt/conda/bin/conda clean -a -y
+
+
+%environment
+  # Set up Conda environment variables and activate environment
+  export PATH=/opt/conda/bin:/opt/conda/envs/diffusionmritoolkit/bin:$PATH
+  export PYTHONPATH=/opt/conda/envs/diffusionmritoolkit/lib/python3.9/site-packages:$PYTHONPATH
+  export PATH=/usr/local/bin:$PATH  # Add DSI Studio and MDT to the PATH
+  export PATH=/opt/ants/install/bin:$PATH  # Add ANTs to the PATH
+  export PATH=/opt/fsl/bin:$PATH  # Add FSL to the PATH
+  export LD_LIBRARY_PATH=/opt/conda/envs/diffusionmritoolkit/lib:$LD_LIBRARY_PATH
+  export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt6/plugins
+  export QT_PLUGIN_PATH=/usr/lib/x86_64-linux-gnu/qt6/plugins
+  export FSLDIR=/opt/fsl
+  export FSLOUTPUTTYPE=NIFTI_GZ
+  export CUDA_VISIBLE_DEVICES=""
+
+  # Initialize Conda and activate the diffusionmritoolkit environment
+  . /opt/conda/bin/activate diffusionmritoolkit
+
+%runscript
+  # Default behavior when the container is executed (run Python)
+  source /opt/conda/bin/activate diffusionmritoolkit
+  exec python "$@"

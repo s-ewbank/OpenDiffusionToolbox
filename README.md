@@ -1,14 +1,13 @@
-# DiffusionMRIToolkit
+# OpenDiffusionToolbox
 ## Description
 Toolkit for implementing dMRI model fitting (DTI, NODDI), registration, and ROI- and voxel-based analysis in mice, rats, or humans using an HPC like Stanford's Sherlock.
 ## Installation
-1. Prerequesite to using this toolkit, you should install ANTs, FSL, and 3 Singularity containers: Microstructure Diffusion Toolbox (MDT), MIRACL, and DSI-Studio. The MDT container should be installed as instructed by [akhanf](https://github.com/akhanf/mdt-singularity), and the MIRACL and DSI-Studio containers can be built as follows:
+1. Download this repository.
+2. I have installed *almost all the dependencies for this toolbox in a Singularity container for which the Singularity.def makefile is provided. The Singularity container can be made as follows, and should be usable without any additional exporting of paths or mounting:
    ```
-   singularity pull miracl_latest.sif library://aiconslab/miracl/miracl:latest
-   singularity pull dsi_latest.sif library://dsistudio/dsistudio:latest
+   singularity build ODTB.sif /path/to/OpenDiffusionToolbox/singularity_recipe/Singularity11.def
    ```
-2. Download the toolkit.
-
+*If you wish to use MDT (e.g., for NODDI model fitting), you should separately use the container recipe provided by [akhanf](https://github.com/akhanf/mdt-singularity) to make another container to run in conjunction with this, since it has the appropriate setup for OpenCL kernel management.
 ## Usage
 1. First, use the MAKE_CONFIG.sh script to make a config file by entering
    ```
@@ -17,21 +16,21 @@ Toolkit for implementing dMRI model fitting (DTI, NODDI), registration, and ROI-
    and answering all subsequent prompts.
 2. Use the script to fit DTI/NODDI metrics with
    ```
-   bash RUN_SCRIPTS.sh fit
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step fit
    ```
 3. Then register with
    ```
-   bash RUN_SCRIPTS.sh reg
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step reg
    ```
 4. Then quantify signal within atlas regions using:
    ```
-   bash RUN_SCRIPTS.sh roi
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step roi
    ```
 5. Then quantify signal using voxel-based analysis with:
    ```
-   bash RUN_SCRIPTS.sh vba
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step vba
    ```
 6. Finally, do tractography analysis with:
    ```
-   bash RUN_SCRIPTS.sh tract
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step tract
    ```
