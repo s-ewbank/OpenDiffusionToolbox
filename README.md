@@ -2,7 +2,10 @@
 ## Description
 Toolkit for implementing dMRI model fitting (DTI, NODDI), registration, and ROI- and voxel-based analysis in mice, rats, or humans using an HPC like Stanford's Sherlock.
 ## Installation
-1. Download this repository.
+1. Download this repository and the atlases that go with it. The atlases can be installed from the following link:
+   ```
+    wget --no-check-certificate -O /opt/atlases.zip -d "https://www.dropbox.com/scl/fo/1iy3woqtvl7f5vhet33jb/AMwaSBtm2M2O8mvfDIcwXn0?rlkey=wqege46bidvnjty6pz0x1w8nk&st=b4elsg99&dl=1"
+   ```
 2. I have installed *almost all the dependencies for this toolbox in a Singularity container for which the Singularity.def makefile is provided. The Singularity container can be made as follows, and should be usable without any additional exporting of paths or mounting:
    ```
    singularity build ODTB.sif /path/to/OpenDiffusionToolbox/singularity_recipe/Singularity11.def

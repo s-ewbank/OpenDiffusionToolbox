@@ -2,6 +2,8 @@
 # Initialize and get info from config
 #########################################
 
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$SLURM_CPUS_PER_TASK
+
 config_path=""
 d=""
 
@@ -111,11 +113,13 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing reconstruction and fiber tracking"
 dsi_studio --action=rec \
     --source=${out_dir}/${out_fname}_DSI.src.gz \
     --mask=${out_dir}/atlasmask_origspace.nii.gz \
+    --thread_count=$SLURM_CPUS_PER_TASK \
     --output=${out_dir}/${out_fname}_DSI.fib.gz
 
 dsi_studio --action=trk \
     --source=${out_dir}/${out_fname}_DSI.fib.gz \
     --output=${out_dir}/${out_fname}_DSI.tt.gz \
+    --thread_count=$SLURM_CPUS_PER_TASK \
     --min_length=2 --max_length=25 --tip_iteration=16 --fiber_count=2500000 --smoothing=0.5 --turning_angle=60 --method=1
 
 
@@ -141,6 +145,7 @@ dsi_studio --action=ana \
     --connectivity=${out_dir}/fullatlas_origspace.nii.gz \
     --other_slices=${volume_paths_csv} \
     --connectivity_value=${volume_names_csv} \
+    --thread_count=$SLURM_CPUS_PER_TASK \
     --connectivity_output=connectogram
 
 
@@ -169,16 +174,20 @@ if [ "$special_ids" != "X" ]; then
             --source=${out_dir}/${out_fname}_DSI.fib.gz \
             --tract=${out_dir}/${out_fname}_DSI.tt.gz \
             --roi=${out_dir}/atlas-roi-${special}_origspace.nii.gz \
+            --thread_count=$SLURM_CPUS_PER_TASK \
             --output=${out_dir}/${out_fname}_${special}-filtered.tt.gz
         
         dsi_studio --action=ana \
             --source=${out_dir}/${out_fname}_DSI.fib.gz \
             --tract=${out_dir}/${out_fname}_${special}-filtered.tt.gz \
+            --thread_count=$SLURM_CPUS_PER_TASK \
+            --other_slices=${volume_paths_csv} \
             --export=stat
             
         dsi_studio --action=ana \
             --source=${out_dir}/${out_fname}_DSI.fib.gz \
             --tract=${out_dir}/${out_fname}_${special}-filtered.tt.gz \
+            --thread_count=$SLURM_CPUS_PER_TASK \
             --export=${out_dir}/${out_fname}_${special}-filtered.nii.gz
         
     done

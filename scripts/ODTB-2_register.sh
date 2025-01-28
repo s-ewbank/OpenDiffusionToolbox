@@ -103,7 +103,7 @@ if [[ "$organism" == "rat" || "$organism" == "mouse" ]]; then
     fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -mas ${rootdir}/${vol_dir}/temp/cloud_mask.nii.gz -thrP 30 -bin -ero -ero -dilD -dilD $pre_reg_mask
     
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Masking non-brain tissue and ventricles"
-    fslmaths $MD_vol -mas $pre_reg_mask -thrP 75 -bin -mul -1 -add 1 reg/ventricles.nii.gz
+    fslmaths $MD_vol -mas $pre_reg_mask -thrP 95 -bin -mul -1 -add 1 reg/ventricles.nii.gz
     fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -mas $pre_reg_mask -mas reg/ventricles.nii.gz reg/S0_masked.nii.gz
     
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Clip at 90th percentile and apply POW!!"

@@ -59,7 +59,7 @@ for volume in "${volumes[@]}"; do
     fi
 done
 
-dki=0
+dki=1
 for volume in "${volumes[@]}"; do
     if [[ "$volume" == "MK" ]]; then
         dki=1

@@ -1,4 +1,4 @@
-rootdir=/scratch/groups/rairan/NODDI/25-01-02/batch_output/
+rootdir=/scratch/groups/rairan/NODDI/25-01-23/batch_output/
 
 cd $rootdir
 mkdir filt_results
