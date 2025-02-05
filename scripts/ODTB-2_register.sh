@@ -26,7 +26,6 @@ filedir="$(cd "$(dirname "$BASH_SOURCE")" && pwd)"
 source ${filedir}/../READ_CONFIG.sh $config_path
 
 rootdir=${rootdir}/batch_output/
-atlas_dir=/scratch/users/snewbank/atlases/
 
 cd $rootdir
 cd $vol_dir
@@ -41,17 +40,17 @@ pre_reg_mask=reg/pre_reg_mask.nii.gz
 
 if [[ "$organism" == "mouse" ]]; then
 
-    template=${atlas_dir}/mouse/P56_Atlas_100um.nii.gz
-    init_txfm=${atlas_dir}/mouse/mouse_S0_to_ref.mat
+    template=${atlas_path}/mouse/P56_Atlas_100um.nii.gz
+    init_txfm=${atlas_path}/mouse/mouse_S0_to_ref.mat
     
 elif [[ "$organism" == "rat" ]]; then
 
-    template=${atlas_dir}/rat/WHS_SD_rat_BRAIN_T2.nii.gz
-    init_txfm=${atlas_dir}/rat/rat_S0_to_ref.mat
+    template=${atlas_path}/rat/WHS_SD_rat_BRAIN_T2.nii.gz
+    init_txfm=${atlas_path}/rat/rat_S0_to_ref.mat
     
 elif [[ "$organism" == "human" ]]; then
 
-    template=${atlas_dir}/human/FSL_HCP1065_FA_1mm.nii.gz
+    template=${atlas_path}/human/FSL_HCP1065_FA_1mm.nii.gz
     
 fi
 

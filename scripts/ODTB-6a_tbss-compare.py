@@ -264,7 +264,7 @@ if design=="delta":
         template_img = nib.load(avg_vol_dir+"/avg_"+voltype+"_masked.nii.gz")
         
         nilearn.plotting.plot_stat_map(tmap_img, bg_img=template_img, title="TBSS T-Score Delta "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
-                                       threshold=3, cut_coords=cut_coords,cmap="seismic",black_bg=True,
+                                       threshold=1, cut_coords=cut_coords,cmap="seismic",black_bg=True,
                                        output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=12)
 
 if design=="baseline":
@@ -405,7 +405,7 @@ if design=="baseline":
         template_img = nib.load(avg_vol_dir+"/avg_"+voltype+"_masked.nii.gz")
         
         nilearn.plotting.plot_stat_map(tmap_img, bg_img=template_img, title="TBSS T-Score Baseline "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
-                                       threshold=3, cut_coords=cut_coords,cmap=cmap,black_bg=True,
-                                       output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=12)
+                                       threshold=1, cut_coords=cut_coords,cmap=cmap,black_bg=True,
+                                       output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=6)
         
         print("Done computing t-test for volume " + voltype + ", doing clustering")

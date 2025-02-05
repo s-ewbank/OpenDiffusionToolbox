@@ -357,8 +357,8 @@ if design=="baseline":
     
     groups=sorted(list(timepts_dict.keys()))
     
-    #cmap="PiYG_r"
-    cmap="BrBG_r"
+    cmap="PiYG_r"
+    #cmap="BrBG_r"
     
     for group in groups:
         print("Group "+str(group)+" contains:")

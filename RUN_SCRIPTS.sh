@@ -58,96 +58,66 @@ for file in $(find "$scripts_dir" -type f); do
 done
 
 if [[ "$step" == "fit" ]]; then
-    #########################################
-    # 1 - DTI AND NODDI FITTING
-    #########################################
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing DTI and NODDI fitting"
-    
-    # Change job length
-    sed -i 's/^#SBATCH --time .*/#SBATCH --time 6:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
-    
-    cd $rootdir
-    mkdir batch_output
-    subdirs=$(ls)
-    
-    for d in $subdirs
-        do
-            echo $d
-            sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-1a_fit.sh --dir $d
-        done
+    noddi=0
+    for volume in "${volumes[@]}"; do
+        if [[ "$volume" == "NDI" || "$volume" == "ODI" ]]; then
+            noddi=1
+            break
+        fi
+    done
+
+    if [[ "$noddi" == 0 ]]; then
+        #########################################
+        # 1 - DTI FITTING
+        #########################################
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing DTI fitting"
         
+        # Change job length
+        sed -i 's/^#SBATCH --time .*/#SBATCH --time 6:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+        
+        cd $rootdir
+        mkdir batch_output
+        subdirs=$(ls)
+        n_subdirs=`find . -mindepth 1 -maxdepth 1 -type d | wc -l`
+        
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Identified $n_subdirs subdirectories in root directory for initial fitting in ${rootdir}"
+        count=1
+        
+        for d in $subdirs
+            do
+                echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running initial fitting script on subdir $count called $d."
+                sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-1a_fit.sh --dir $d
+            done
+            
+    elif [[ "$noddi" == 1 ]]; then
+        #########################################
+        # 1x - DTI AND NODDI FITTING - MDT only works here for now.
+        #########################################
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing DTI and NODDI fitting"
+        
+        cd $rootdir
+        mkdir batch_output
+        subdirs=$(ls)
+        n_subdirs=`find . -mindepth 1 -maxdepth 1 -type d | wc -l`
+        
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Identified $n_subdirs subdirectories in root directory for initial fitting in ${rootdir}"
+        count=1
+        
+        for d in $subdirs
+            do
+                echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running initial fitting script on subdir $count called $d."
+                sbatch ${scripts_dir}/ODTB-1x_fit-with-mdt.sbatch --config $config_path --dir $d
+                count=$(($count+1))
+            done
+    
+    fi
+
 elif [[ "$step" == "check_fit" ]]; then
     #########################################
     # 1b - GET MISSED DIRECTORIES FROM INITIAL FITTING
     #########################################
     # Because sometimes py-opencl throws an error (device not found)
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking all directories for DTI/NODDI output..."
-    
-    # Change job length
-    sed -i 's/^#SBATCH --time .*/#SBATCH --time 6:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
-    
-    cd ${rootdir}/batch_output
-    subdirs=$(ls)
-    mkdir ../batch2
-    
-    for d in $subdirs
-    do
-    	if [ ! -f ${d}/ODI.nii.gz ]; then
-    		echo "for ${d} - no NODDI output"
-    		rm -r ${d}
-    		cp -r ../${d//_output} ../batch2
-    	fi
-    done
-    
-    cd ../batch2
-    rm -r */output
-    rm */fullbinmask.nii.gz
-    rm */raw_dwi_censored.nii.gz
-    rm */raw_dwi_censored_mppca.nii.gz
-    rm */tensorperfect_dwi.nii.gz
-    
-    cd ${rootdir}/batch2
-    rootdir=${rootdir}/batch2
-    subdirs=$(ls)
-    
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Rerunning on batch that didn't run before..."
-    
-    for d in $subdirs
-        do
-            echo $d
-            sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-1a_fit.sh --dir $d
-        done
-        
-elif [[ "$step" == "fit_backup" ]]; then
-    #########################################
-    # 1x - DTI AND NODDI FITTING - MDT only works here for now.
-    #########################################
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing DTI and NODDI fitting"
-    
-    cd $rootdir
-    mkdir batch_output
-    subdirs=$(ls)
-    n_subdirs=`find . -mindepth 1 -maxdepth 1 -type d | wc -l`
-    
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Identified $n_subdirs subdirectories in root directory for initial fitting in ${rootdir}"
-    count=1
-    
-    for d in $subdirs
-        do
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running initial fitting script on subdir $count called $d."
-            sbatch ${scripts_dir}/ODTB-1x_fit-BACKUP.sbatch --config $config_path --dir $d
-            count=$(($count+1))
-        done
-
-elif [[ "$step" == "check_fit_backup" ]]; then
-    #########################################
-    # 1b - GET MISSED DIRECTORIES FROM INITIAL FITTING
-    #########################################
-    # Because sometimes py-opencl throws an error (device not found)
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking all directories for DTI/NODDI output..."
-    
-    # Change job length
-    sed -i 's/^#SBATCH --time .*/#SBATCH --time 6:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
     
     cd ${rootdir}/batch_output
     subdirs=$(ls)
@@ -180,7 +150,7 @@ elif [[ "$step" == "check_fit_backup" ]]; then
     for d in $subdirs
         do
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running initial fitting script on subdir $count called $d."
-            sbatch ${scripts_dir}/ODTB-1x_fit-BACKUP.sbatch --config $config_path --dir $d --rerun 1
+            sbatch ${scripts_dir}/ODTB-1x_fit-with-mdt.sbatch --config $config_path --dir $d --rerun 1
             count=$(($count+1))
         done
 

@@ -110,8 +110,11 @@ if do_slices==1:
                 raw_dwi_b_mean=np.median(raw_dwi_b,axis=3)
                 for volume in bval_m:
                     bads=[]
-                    mse = mean_squared_error(raw_dwi_bounded[:,:,slice_i,volume],raw_dwi_b_mean[:,:,slice_i])
-                    if np.sqrt(mse)>0.5*np.std(raw_dwi_bounded[:,:,slice_i,:]):
+                    #mse = mean_squared_error(raw_dwi_bounded[:,:,slice_i,volume],raw_dwi_b_mean[:,:,slice_i])
+                    #if np.sqrt(mse)>0.25*np.std(raw_dwi_bounded[:,:,slice_i,:]):
+                    err=np.sqrt((raw_dwi_bounded[:,:,slice_i,volume]-raw_dwi_b_mean[:,:,slice_i])**2)
+                    fr_bad = np.mean(err>(0.5*np.std(raw_dwi_bounded[:,:,slice_i,:],axis=2)))
+                    if fr_bad>0.5:
                         keep_slice.append(False)
                         dwi_censored[:,:,slice_i,volume]=tensorperfect_dwi[:,:,slice_i,volume]
                     else:
