@@ -12,6 +12,25 @@ Toolkit for implementing dMRI model fitting (DTI, NODDI), registration, and ROI-
    ```
 *If you wish to use MDT (e.g., for NODDI model fitting), you should separately use the container recipe provided by [akhanf](https://github.com/akhanf/mdt-singularity) to make another container to run in conjunction with this, since it has the appropriate setup for OpenCL kernel management.
 ## Usage
+Before beginning, you should format your data such that data for each scan/observation is in its own folder containing the following: (1) a 4D raw diffusion MRI file in NIFTI format; (2) a bvecs file with suffix .bvec, and (3) a bvals file with suffix .bval. For example:
+   ```
+   subject1/
+   ├── 4d_dmri_img.nii.gz  # Diffusion MRI image
+   ├── bvals.bval                  # B-values file
+   ├── bvecs.bvec                  # B-vectors file
+   
+   subject2/
+   ├── 4d_dmri_img.nii.gz
+   ├── bvals.bval
+   ├── bvecs.bvec
+   
+   subject3/
+   ├── 4d_dmri_img.nii.gz
+   ├── bvals.bval
+   ├── bvecs.bvec
+   
+   ```
+Once you have this, you may proceed to the following steps. (The parent directory of these subdirectories is what you will enter as root directory in the config file.)
 1. First, use the MAKE_CONFIG.sh script to make a config file by entering
    ```
    bash MAKE_CONFIG.sh
@@ -29,11 +48,19 @@ Toolkit for implementing dMRI model fitting (DTI, NODDI), registration, and ROI-
    ```
    bash RUN_SCRIPTS.sh --config <path/to/config> --step roi
    ```
-5. Then quantify signal using voxel-based analysis with:
+5. Get full-study average volumes with:
    ```
-   bash RUN_SCRIPTS.sh --config <path/to/config> --step vba
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step vba_avg
    ```
-6. Finally, do tractography analysis with:
+6. Do tractography analysis with:
    ```
    bash RUN_SCRIPTS.sh --config <path/to/config> --step tract
+   ```
+7. Do tbss with:
+   ```
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step tbss
+   ```
+8. Finally, run voxel-based group comparisons using vba_compare with the added --design flag set to a valid option (baseline, delta, longitudinal for full volume or baseline_tbss, delta_tbss, longitudinal_tbss for TBSS voxels). The comparison will use the group assignments designated in the groups CSV file indicated in the config file. An example is as follows:
+   ```
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step vba_compare --design delta
    ```
