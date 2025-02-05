@@ -12,12 +12,13 @@ Toolkit for implementing dMRI model fitting (DTI, NODDI), registration, and ROI-
    ```
 *If you wish to use MDT (e.g., for NODDI model fitting), you should separately use the container recipe provided by [akhanf](https://github.com/akhanf/mdt-singularity) to make another container to run in conjunction with this, since it has the appropriate setup for OpenCL kernel management.
 ## Usage
+### Before you start
 Before beginning, you should format your data such that data for each scan/observation is in its own folder containing the following: (1) a 4D raw diffusion MRI file in NIFTI format; (2) a bvecs file with suffix .bvec, and (3) a bvals file with suffix .bval. For example:
    ```
    subject1/
-   ├── 4d_dmri_img.nii.gz  # Diffusion MRI image
-   ├── bvals.bval                  # B-values file
-   ├── bvecs.bvec                  # B-vectors file
+   ├── 4d_dmri_img.nii.gz     # 4D raw dMRI image (.nii.gz)
+   ├── bvals.bval             # bval file (.bval)
+   ├── bvecs.bvec             # bvec file (.bvec)
    
    subject2/
    ├── 4d_dmri_img.nii.gz
@@ -30,8 +31,9 @@ Before beginning, you should format your data such that data for each scan/obser
    ├── bvecs.bvec
    
    ```
-Once you have this, you may proceed to the following steps. (The parent directory of these subdirectories is what you will enter as root directory in the config file.)
-1. First, use the MAKE_CONFIG.sh script to make a config file by entering
+### Processing
+Once you have this, you may proceed to the following steps. Making the config and doing the "fit" and "reg" steps are prerequesite to all subsequent steps in the "Analysis" section (i.e., roi, tract, vba_compare)
+1. First, use the MAKE_CONFIG.sh script to make a config file with the following (and note that the parent directory of these subdirectories is what you will enter as root directory in the config file):
    ```
    bash MAKE_CONFIG.sh
    ```
@@ -44,7 +46,9 @@ Once you have this, you may proceed to the following steps. (The parent director
    ```
    bash RUN_SCRIPTS.sh --config <path/to/config> --step reg
    ```
-4. Then quantify signal within atlas regions using:
+### Analysis
+After doing the "fit" and "reg" steps, you may move on to doing analysis! Note that the analyses are based on the groups CSV file specified in the config as "groups_file", and a dummy version of this file needing only unique timepoint and condition labels is made during creation of the config file.
+4. Quantify signal within atlas regions using:
    ```
    bash RUN_SCRIPTS.sh --config <path/to/config> --step roi
    ```
