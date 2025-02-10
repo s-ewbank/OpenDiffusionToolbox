@@ -120,6 +120,7 @@ elif [[ "$step" == "check_fit" ]]; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking all directories for DTI/NODDI output..."
     
     cd ${rootdir}/batch_output
+    echo $rootdir
     subdirs=$(ls)
     mkdir ../batch2
     
@@ -191,7 +192,7 @@ elif [[ "$step" == "reg" ]]; then
         count=$(($count+1))
     done
     
-elif [[ "$step" == "reg_backup" ]]; then
+elif [[ "$step" == "reg_apply" ]]; then
     #########################################
     # 2 - REGISTRATION
     #########################################
@@ -213,9 +214,63 @@ elif [[ "$step" == "reg_backup" ]]; then
     for d in $subdirs
     do
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running registration script on subdir $count called $d."
-        bash ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-2x_register-BACKUP.sh --dir $d
+        bash ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-2x_register-apply.sh --dir $d
         count=$(($count+1))
     done
+    
+elif [[ "$step" == "reg_studyFA" ]]; then
+    #########################################
+    # 2 - REGISTRATION
+    #########################################
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Re-doing registration with study-specific FA template"
+    
+    cd ${rootdir}/batch_output
+    subdirs=$(ls)
+    n_subdirs=`find . -mindepth 1 -maxdepth 1 -type d | wc -l`
+    
+    # Change job length
+    sed -i 's/^#SBATCH --time .*/#SBATCH --time 48:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Identified $n_subdirs subdirectories in root directory for registration in ${rootdir}/batch_output"
+    echo " "
+    count=1
+    cp ${scripts_dir}/ODTB-2_register.sh ${rootdir}/batch_output/ODTB-2_register.sh
+    mkdir batch_reg_output2
+    
+    for d in $subdirs
+    do
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running registration script on subdir $count called $d."
+        sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-2x_register-studyFA.sh --dir $d
+        count=$(($count+1))
+    done
+    
+elif [[ "$step" == "reg_switch" ]]; then
+    #########################################
+    # 2 - REGISTRATION - SWITCH USED
+    #########################################
+    if [ -d "${rootdir}/batch_output/batch_reg_output2" ]; then
+         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Switching used reg from orig to fa"
+    
+        cd ${rootdir}/batch_output
+        mv batch_reg_output batch_reg_output_ORIG
+        mv batch_reg_output2 batch_reg_output
+        
+        subdirs=$(ls)
+        n_subdirs=`find . -mindepth 1 -maxdepth 1 -type d | wc -l`
+        
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Switched batch_reg_output, now switching reg in each directory"
+        
+        for d in $subdirs
+        do
+            cd $d
+            mv reg reg_ORIG
+            mv reg2 reg
+            cd ..
+        done
+        
+    else
+         echo "[$(date '+%Y-%m-%d %H:%M:%S')] While trying to switch used reg directory, didn't find reg2 directories"
+    fi
     
     
 elif [[ "$step" == "mk_clip" ]]; then
@@ -277,6 +332,51 @@ elif [[ "$step" == "combine_roi_outputs" ]]; then
     singularity exec $container_path /opt/conda/envs/diffusionmritoolkit/bin/python ${scripts_dir}/ODTB-3c_roi-out-combiner.py $output_dir "${volumes[@]}"
     find "$output_dir" -type f ! -name '*combined*' -print0 | xargs -0 -I {} rm {}
 
+elif [[ "$step" == "roi_distr_compare" ]]; then
+    #########################################
+    # 3a1 - ROI-BASED ANALYSIS
+    #########################################
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing ROI-based analysis"
+    
+    postreg_root=${rootdir}/batch_output/batch_reg_output/
+    output_dir="${postreg_root}/roi_dist_output/"
+    mkdir $output_dir
+    cd ${postreg_root}
+
+        if [[ "$design" == "baseline" ]]
+        then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] roi_distr_compare - comparing groups using a BASELINE (single timepoint, multi group) design"
+            for vol in "${volumes[@]}"
+            do
+                echo "[$(date '+%Y-%m-%d %H:%M:%S')] Making roi_distr_compare maps for ${vol}"
+                singularity exec $container_path /opt/conda/envs/diffusionmritoolkit/bin/python ${scripts_dir}/ODTB-3d_roi-compare-dist.py \
+                    --rootdir $reg_output_dir \
+                    --mask $mask_path \
+                    --outdir $output_dir \
+                    --groups $groups_file \
+                    --organism $organism \
+                    --atlas_path $atlas_path \
+                    --vt ${vol} \
+                    --design "baseline"
+            done
+        elif [[ "$design" == "delta" ]]
+        then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] roi_distr_compare - comparing groups using a DELTA (two timepoint, multi group) design"
+            for vol in "${volumes[@]}"
+            do
+                echo "[$(date '+%Y-%m-%d %H:%M:%S')] Making roi_distr_compare maps for ${vol}"
+                singularity exec $container_path /opt/conda/envs/diffusionmritoolkit/bin/python ${scripts_dir}/ODTB-3d_roi-compare-dist.py \
+                    --rootdir $reg_output_dir \
+                    --mask $mask_path \
+                    --outdir $output_dir \
+                    --groups $groups_file \
+                    --organism $organism \
+                    --atlas_path $atlas_path \
+                    --vt ${vol} \
+                    --design "delta"
+            done
+        fi
+
 elif [[ "$step" == "vba_avg" || "$step" == "vba_compare" ]]; then
     #########################################
     # 3b - VOXEL-BASED ANALYSIS
@@ -301,7 +401,6 @@ elif [[ "$step" == "vba_avg" || "$step" == "vba_compare" ]]; then
     mkdir -p "${tbss_tmap_dir}/individual_diffs"
     mkdir -p $tbss_baseline_tmap_dir
     
-    atlas_dir=/scratch/users/snewbank/atlases/
     labels_path="${reg_output_dir}/${dir}/atlas_labels.nii.gz"
     mask_path="${reg_output_dir}/${dir}/atlas_mask.nii.gz"
     
@@ -310,16 +409,16 @@ elif [[ "$step" == "vba_avg" || "$step" == "vba_compare" ]]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Voxel-based analysis - making average volumes"
         if [[ "$organism" == "mouse" ]]
         then
-            cp ${atlas_dir}/mouse/P56_MASK_100um.nii.gz $mask_path
+            cp ${atlas_path}/mouse/P56_MASK_100um.nii.gz $mask_path
         fi
         if [[ "$organism" == "rat" ]]
         then
-            cp ${atlas_dir}/rat/WHS_SD_rat_BRAIN_MASK.nii.gz $mask_path
+            cp ${atlas_path}/rat/WHS_SD_rat_BRAIN_MASK.nii.gz $mask_path
         fi
         if [[ "$organism" == "human" ]]
         then
-            fslmaths ${atlas_dir}/human/HarvardOxford-cort-maxprob-thr50-1mm.nii.gz \
-                -add ${atlas_dir}/human/HarvardOxford-cort-maxprob-thr50-1mm.nii.gz \
+            fslmaths ${atlas_path}/human/HarvardOxford-cort-maxprob-thr50-1mm.nii.gz \
+                -add ${atlas_path}/human/HarvardOxford-cort-maxprob-thr50-1mm.nii.gz \
                 -bin $mask_path
         fi
         
