@@ -39,6 +39,7 @@ MD_vol=MD.nii.gz
 mkdir reg2
 cp reg/pre_reg_mask.nii.gz reg2/pre_reg_mask.nii.gz
 pre_reg_mask=reg2/pre_reg_mask.nii.gz
+fslreorient2std $pre_reg_mask $pre_reg_mask
 
 template=${rootdir}/batch_reg_output/vba/avg_volumes/avg_FA_masked.nii.gz
 FLIRT_init=reg/subj_to_template.mat
@@ -75,16 +76,33 @@ fslmaths $template -bin -dilD -dilD -dilD -dilD reg2/template_mask.nii.gz
 
 fslmaths ${in_vol//.nii.gz}_flirt.nii.gz -mas reg2/template_mask.nii.gz ${in_vol//.nii.gz}_flirt.nii.gz
 
-antsRegistration --dimensionality 3 --float 0 \
-    --output [reg2/subj_to_template,reg2/subj_to_templateWarped.nii.gz,reg2/subj_to_templateInverseWarped.nii.gz] \
-    --interpolation Linear --use-histogram-matching 0 --winsorize-image-intensities [0.005,0.995] \
-    --initial-moving-transform [${in_vol//.nii.gz}_flirt.nii.gz,$template,1] \
-    --transform Affine[0.1] \
-    --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
-    --convergence [2000x700x550x200,1e-10,15] --shrink-factors 4x2x1x1 --smoothing-sigmas 3x2x1x0vox \
-    --transform BSplineSyN[0.1,26,0,3] \
-    --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
-    --convergence [100x70x50x20,1e-6,10] --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox
+if [[ "$organism" == "mouse" ]]; then
+
+    antsRegistration --dimensionality 3 --float 0 \
+        --output [reg2/subj_to_template,reg2/subj_to_templateWarped.nii.gz,reg2/subj_to_templateInverseWarped.nii.gz] \
+        --interpolation Linear --use-histogram-matching 0 --winsorize-image-intensities [0.005,0.995] \
+        --initial-moving-transform [${in_vol//.nii.gz}_flirt.nii.gz,$template,1] \
+        --transform Affine[0.1] \
+        --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
+        --convergence [2000x700x550x200,1e-10,15] --shrink-factors 4x2x1x1 --smoothing-sigmas 3x2x1x0vox \
+        --transform BSplineSyN[0.1,26,0,3] \
+        --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
+        --convergence [100x70x50x20,1e-6,10] --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox
+        
+elif [[ "$organism" == "rat" || "$organism" == "human" ]]; then
+
+    antsRegistration --dimensionality 3 --float 0 \
+        --output [reg2/subj_to_template,reg2/subj_to_templateWarped.nii.gz,reg2/subj_to_templateInverseWarped.nii.gz] \
+        --interpolation Linear --use-histogram-matching 0 --winsorize-image-intensities [0.005,0.995] \
+        --initial-moving-transform [${in_vol//.nii.gz}_flirt.nii.gz,$template,1] \
+        --transform Affine[0.1] \
+        --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
+        --convergence [1000x500x250,1e-10,15] --shrink-factors 4x2x1 --smoothing-sigmas 2x1x0vox \
+        --transform BSplineSyN[0.1,26,0,3] \
+        --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
+        --convergence [50x25x10,1e-6,10] --shrink-factors 4x2x1 --smoothing-sigmas 2x1x0vox
+        
+fi
 
 #########################################
 # Applying registration to other volumes

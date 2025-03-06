@@ -49,7 +49,8 @@ smooth=True
 if organism=="mouse":
     cut_coords=np.arange(-5,5,1.5)
     fwhm=0.1
-    atlas_path=atlas_path+"/mouse/atlas_levels/ATLAS_LVL7_100um.nii.gz"
+    #atlas_path=atlas_path+"/mouse/atlas_levels/ATLAS_LVL7_100um.nii.gz"
+    atlas_path="/scratch/groups/rairan/NODDI/25-02-04/sub_atlas.nii.gz"
 elif organism=="rat":
     cut_coords=np.arange(-13,6,2.5)
     fwhm=0.5
@@ -131,12 +132,46 @@ def compare_roi_dist(roi,groups,vt,atlas_path):
         groups_data_point.append(all_data_point)
     result = kstest(groups_data[0],groups_data[1])
     return result
+    
+def make_null_dist(roi,groups,vt,atlas_path):
+    atlas_im = nib.load(atlas_path)
+    atlas_data = atlas_im.get_fdata()
+    groups_data=[]
+    groups_data_point=[]
+    groups=sorted(list(timepts_dict.keys()))
+    ctrl_grp=groups[0]
+    all_data_dist=[]
+    all_data_point=[]
+    image_pairs=timepts_dict[ctrl_group]
+    for subj in range(len(image_pairs)):
+        subj_id=image_pairs[subj][0].split("_")[0]
+        try:
+            subj_pre_dir=image_pairs[subj][0]
+            subj_pre_vol=[rootdir+"/"+subj_pre_dir+"/"+i for i in os.listdir(rootdir+"/"+subj_pre_dir) if "_"+vt+"_reg.nii.gz" in i][0]
+        except:
+            print("Subj " + subj_id + " had some issue, so skipping.")
+            continue
+        if smooth==True:
+            subj_pre_vol=nib.load(subj_pre_vol)
+            subj_pre_vol=nilearn.image.smooth_img(subj_pre_vol, fwhm)
+        else:
+            subj_pre_vol=nib.load(subj_pre_vol)
+        
+        im_data=subj_pre_vol.get_fdata()
+        all_data_dist.append(im_data[atlas_data==roi])
+        all_data_point.append(np.mean(im_data[atlas_data==roi]))
+    all_data_dist=np.array(all_data_dist).flatten()
+    groups_data.append(all_data_dist)
+    groups_data_point.append(all_data_point)
+    result = kstest(groups_data[0],groups_data[1])
+    return result
 
 ###############################################
 # GETTING SUBJ IDS AND PLOTTING DIFFS AND T SCORES
 ###############################################
 if design=="baseline":
 
+    pd.DataFrame(
     #cmap = plt.cm.PiYG_r
     cmap = plt.cm.BrBG_r
     
@@ -166,22 +201,4 @@ if design=="baseline":
     
     result_atlas_im = nib.Nifti1Image(result_atlas, atlas_im.affine, atlas_im.header)
     pval_atlas_im = nib.Nifti1Image(pval_atlas, atlas_im.affine, atlas_im.header)
-    
-    outline_im = make_outline_im(atlas_path)
-    
-    fig, ax = plt.subplots(1,1,figsize=(8,2),dpi=500)
-    
-    clear_black_cmap = ListedColormap([(0, 0, 0, 0),(0, 0, 0, 0.5)], name="clear_black")
-
-    vlim=0.5
-    plotting.plot_img(result_atlas_im,black_bg=False,cmap=cmap,title=groups[0]+" vs "+groups[1] + " " + vt,
-                      draw_cross=False,annotate=False,display_mode="y",cut_coords=cut_coords,vmin=vlim*-1,vmax=vlim,axes=ax)
-    
-    plotting.plot_img(outline_im,black_bg=False,cmap=clear_black_cmap,title=groups[0]+" vs "+groups[1] + " " + vt,
-                      draw_cross=False,annotate=False,display_mode="y",cut_coords=cut_coords,vmin=0,vmax=1,axes=ax)
-                      
-    plt.savefig(output_dir+"/roi-ks-result-"+groups[0]+" vs "+groups[1] + " " + vt + ".png", dpi=500)
-    
-    result_atlas_im.to_filename(output_dir + "/roi-ks-STAT_"+groups[0]+"_vs_"+groups[1] + "-" + vt + ".nii.gz")
-    pval_atlas_im.to_filename(output_dir + "/roi-ks-PVAL_"+groups[0]+"_vs_"+groups[1] + "-" + vt + ".nii.gz")
 

@@ -191,9 +191,12 @@ if [[ "$do_slice" == 1 ]]; then
             echo ""
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using DSI to fit ${slice_i}"
             
-            dsi_studio --action=src --source=$dwi --bval=$bval --bvec=$bvec --output=output/dsi_output_dir/dsi_out.sz
+            dsi_studio --action=src --source=$dwi --bval=$bval --bvec=$bvec --output=output/dsi_output_dir/dsi_out.sz --other_output=qa
             dsi_studio --action=rec --source=output/dsi_output_dir/dsi_out.sz --mask=$mask --output=output/dsi_output_dir/dsi_out.fib.gz
-            dsi_studio --action=ana --source=output/dsi_output_dir/dsi_out.fib.gz  --export=qa
+            dsi_studio --action=exp --source=output/dsi_output_dir/dsi_out.fib.gz  --export=qa
+            /opt/conda/envs/diffusionmritoolkit/bin/python ${scripts_dir}/ODTB-1e_align.py output/dsi_output_dir/*.qa.nii.gz $mask output/dsi_output_dir/qa_align.nii.gz
+            #For newer versions of dsi studio
+            #dsi_studio --action=ana --source=output/dsi_output_dir/dsi_out.fib.gz  --export=qa
         fi
         echo ""
         
@@ -218,7 +221,7 @@ if [[ "$do_slice" == 1 ]]; then
             mkdir output/kurtosis_output_dir
         fi
         if [[ "$dsi" == 1 ]]; then
-            cp output/dsi_output_dir/*.qa.nii.gz output/final_output_dir/QA.nii.gz
+            cp output/dsi_output_dir/qa_align.nii.gz output/final_output_dir/QA.nii.gz
             rm -r output/dsi_output_dir
             mkdir output/dsi_output_dir
         fi
@@ -243,7 +246,7 @@ if [[ "$do_slice" == 1 ]]; then
             mkdir output/kurtosis_output_dir
         fi
         if [[ "$dsi" == 1 ]]; then
-            fslmaths output/final_output_dir/QA.nii.gz -add output/dsi_output_dir/*.qa.nii.gz output/final_output_dir/QA.nii.gz
+            fslmaths output/final_output_dir/QA.nii.gz -add output/dsi_output_dir/qa_align.nii.gz output/final_output_dir/QA.nii.gz
             rm -r output/dsi_output_dir
             mkdir output/dsi_output_dir
         fi
@@ -289,9 +292,12 @@ else
         echo ""
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using DSI to fit QA"
         
-        dsi_studio --action=src --source=$dwi --bval=$bval --bvec=$bvec --output=output/dsi_output_dir/${dwi//.nii.gz}.src.gz
+        dsi_studio --action=src --source=$dwi --bval=$bval --bvec=$bvec --output=output/dsi_output_dir/${dwi//.nii.gz}.src.gz --other_output=qa
         dsi_studio --action=rec --source=output/dsi_output_dir/${dwi//.nii.gz}.src.gz --mask=$mask --output=output/dsi_output_dir/${dwi//.nii.gz}.fib.gz
-        dsi_studio --action=ana --source=output/dsi_output_dir/${dwi//.nii.gz}.fib.gz  --export=qa
+        dsi_studio --action=exp --source=output/dsi_output_dir/${dwi//.nii.gz}.fib.gz  --export=qa
+        /opt/conda/envs/diffusionmritoolkit/bin/python ${scripts_dir}/ODTB-1e_align.py output/dsi_output_dir/*.qa.nii.gz $mask output/dsi_output_dir/qa_align.nii.gz
+        #for newer DSI studio versions
+        #dsi_studio --action=ana --source=output/dsi_output_dir/${dwi//.nii.gz}.fib.gz  --export=qa
     fi
     
     mkdir "output/final_output_dir"
@@ -314,9 +320,9 @@ else
         mkdir output/kurtosis_output_dir
     fi
     if [[ "$dsi" == 1 ]]; then
-        cp output/dsi_output_dir/*.qa.nii.gz output/final_output_dir/QA.nii.gz
-        rm -r output/dsi_output_dir
-        mkdir output/dsi_output_dir
+        cp output/dsi_output_dir/qa_align.nii.gz output/final_output_dir/QA.nii.gz
+        #rm -r output/dsi_output_dir
+        #mkdir output/dsi_output_dir
     fi
         
 fi

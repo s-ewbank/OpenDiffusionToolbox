@@ -54,7 +54,7 @@ design = args.design
 smooth=True
 
 if organism=="mouse":
-    cut_coords=np.arange(-5,5,1.5)
+    cut_coords=np.arange(-3.5,3.5,1.5)
     fwhm=0.1
 elif organism=="rat":
     cut_coords=np.arange(-13,6,2.5)
@@ -190,7 +190,9 @@ if design=="delta":
     
     for voltype in voltypes:
         diff_imgs_data={}
+        group_subjs={}
         for group in groups:
+            group_subjs[group]=0
             diff_imgs=[]
             image_pairs=timepts_dict[group]
             
@@ -207,6 +209,7 @@ if design=="delta":
                         subj_pre_vol=[rootdir+"/"+subj_pre_dir+"/"+i for i in os.listdir(rootdir+"/"+subj_pre_dir) if "_"+voltype+"_reg.nii.gz" in i][0]
                         subj_post_dir=image_pairs[subj][1]
                         subj_post_vol=[rootdir+"/"+subj_post_dir+"/"+i for i in os.listdir(rootdir+"/"+subj_post_dir) if "_"+voltype+"_reg.nii.gz" in i][0]
+                        group_subjs[group]+=1
                     except:
                         print("Subj " + subj_id + " had some issue, so skipping.")
                         continue
@@ -318,7 +321,7 @@ if design=="delta":
         print(np.min(pmap_img))
         #adjusted_pmap_img = nib.Nifti1Image(adjusted_pmap, affine=affine, header=header)
         
-        nilearn.plotting.plot_img(tmap_img,title="T-Score Delta "+voltype+" " +groups[0]+ " vs. "+groups[1],cmap="seismic",
+        nilearn.plotting.plot_img(tmap_img,title="T-Score Delta "+voltype+" " +groups[0]  + " (" + str(group_subjs[groups[0]]) +") vs. "+groups[1] + " ("  + str(group_subjs[groups[1]]) +")",cmap="seismic",
             draw_cross=False,annotate=False,vmin=-6,vmax=6,output_file=output_dir+"/"+tmap_name+".png",black_bg=True,
             display_mode="y",cut_coords=cut_coords,colorbar=True)
         
@@ -339,7 +342,7 @@ if design=="delta":
         
         # custom cmap
         print("plotting stat map")
-        nilearn.plotting.plot_stat_map(final_tmap_img, bg_img=template_img, title="Thresh T-Score Delta "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
+        nilearn.plotting.plot_stat_map(final_tmap_img, bg_img=template_img, title="Thresh T-Score Delta "+voltype+" " +groups[0]+ " (" + str(group_subjs[groups[0]]) +") vs. "+groups[1] + " ("+str(group_subjs[groups[1]]) +")", display_mode="y",annotate=False,
                                        threshold=voxel_threshold, cut_coords=cut_coords,cmap="seismic",black_bg=True,
                                        output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=12)
         # If using pop, you can do: "/thresholded_"+tmap_name+"_pop"+str(pop_number)+".png"
@@ -357,8 +360,9 @@ if design=="baseline":
     
     groups=sorted(list(timepts_dict.keys()))
     
-    cmap="PiYG_r"
+    #cmap="PiYG_r"
     #cmap="BrBG_r"
+    cmap="seismic"
     
     for group in groups:
         print("Group "+str(group)+" contains:")
@@ -372,7 +376,9 @@ if design=="baseline":
     
     for voltype in voltypes:
         imgs_data={}
+        group_subjs={}
         for group in groups:
+            group_subjs[group]=0
             imgs=[]
             image_pairs=timepts_dict[group]
             
@@ -386,6 +392,7 @@ if design=="baseline":
                 try:
                     subj_pre_dir=image_pairs[subj][0]
                     subj_pre_vol=[rootdir+"/"+subj_pre_dir+"/"+i for i in os.listdir(rootdir+"/"+subj_pre_dir) if "_"+voltype+"_reg.nii.gz" in i][0]
+                    group_subjs[group]+=1
                 except:
                     print("Subj " + subj_id + " had some issue, so skipping.")
                     continue
@@ -508,7 +515,7 @@ if design=="baseline":
         
         # custom cmap
         print("plotting stat map")
-        nilearn.plotting.plot_stat_map(final_tmap_img, bg_img=template_img, title="Thresh T-Score Baseline "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
+        nilearn.plotting.plot_stat_map(final_tmap_img, bg_img=template_img, title="Thresh T-Score Baseline "+voltype+" " +groups[0]+" (" + str(group_subjs[groups[0]]) + ") vs. "+groups[1] + " (" + str(group_subjs[groups[1]]) + ")", display_mode="y",annotate=False,
                                        threshold=voxel_threshold, cut_coords=cut_coords,cmap=cmap,black_bg=True,
                                        output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=6)
         # If using pop, you can do: "/thresholded_"+tmap_name+"_pop"+str(pop_number)+".png"

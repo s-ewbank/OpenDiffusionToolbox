@@ -29,6 +29,7 @@ rootdir=${rootdir}/batch_output/
 
 cd $rootdir
 cd $vol_dir
+pwd
 mkdir ${vol_dir}_reg_output
 
 #Set some variables
@@ -62,7 +63,7 @@ echo "  - ${template}"
 #########################################
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting brain extraction."
 
-if [[ "$organism" == "rat" || "$organism" == "mouse" ]]; then
+if [[ "$organism" == "mouse" ]]; then
     
     mkdir ${rootdir}/${vol_dir}/temp
     
@@ -114,14 +115,58 @@ if [[ "$organism" == "rat" || "$organism" == "mouse" ]]; then
     
     rm -r ${rootdir}/${vol_dir}/temp
 
+elif [[ "$organism" == "rat" ]]; then
+        
+    
+    mkdir ${rootdir}/${vol_dir}/temp
+    
+	echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing bias correction-like step for rat."
+	p50=$(fslstats $S0_vol -P 50 | awk '{print $1}')
+	fslmaths $S0_vol -s 0.5 -max $S0_vol -s 0.2 -div $p50 ${S0_vol//.nii.gz}_bias.nii.gz
+	fslmaths $S0_vol -div ${S0_vol//.nii.gz}_bias.nii.gz ${S0_vol//.nii.gz}_intermed.nii.gz
+	p10=$(fslstats ${S0_vol//.nii.gz}_intermed.nii.gz -P 10 | awk '{print $1}')
+	p85=$(fslstats ${S0_vol//.nii.gz}_intermed.nii.gz -P 85 | awk '{print $1}')
+	fslmaths ${S0_vol//.nii.gz}_intermed.nii.gz -max $p10 -min $p85 -mul 3 -add $S0_vol -div 4 ${S0_vol//.nii.gz}_restore.nii.gz
+	rm ${S0_vol//.nii.gz}_bias.nii.gz ${S0_vol//.nii.gz}_intermed.nii.gz
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extracting brain"
+    # Take square root and do initial thresholding at 40th percentile
+    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -sqrt ${rootdir}/${vol_dir}/temp/sqrt.nii.gz
+    fslmaths ${rootdir}/${vol_dir}/temp/sqrt.nii.gz -thrP 40 ${rootdir}/${vol_dir}/temp/thresh.nii.gz
+    
+    p85=$(fslstats ${rootdir}/${vol_dir}/temp/thresh.nii.gz -P 85 | awk '{print $1}')
+    fslmaths ${rootdir}/${vol_dir}/temp/thresh.nii.gz -min $p85 ${rootdir}/${vol_dir}/temp/thresh.nii.gz
+    
+    # Binarize, smooth, threshold and binarize to get a mask excluding peripheral voxels which have survived thresholding, then smooth to create a cloud and multiply by original image
+    fslmaths ${rootdir}/${vol_dir}/temp/thresh.nii.gz -bin -s 4.5 -thrP 80 -bin -s 4.5 ${rootdir}/${vol_dir}/temp/cloud.nii.gz
+    fslmaths ${rootdir}/${vol_dir}/temp/cloud.nii.gz -mul ${S0_vol//.nii.gz}_restore.nii.gz -thrP 20 ${rootdir}/${vol_dir}/temp/cloud_intermed.nii.gz
+    fslmaths ${rootdir}/${vol_dir}/temp/cloud_intermed.nii.gz -bin -ero -ero -ero -s 1.5 -thr 0.1 -bin -dilD -dilD ${rootdir}/${vol_dir}/temp/cloud_mask.nii.gz
+    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -mas ${rootdir}/${vol_dir}/temp/cloud_mask.nii.gz -thrP 20 -bin -ero -ero -dilD -dilD $pre_reg_mask
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Masking non-brain tissue"
+    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -mas $pre_reg_mask reg/S0_masked.nii.gz
+    
+    fslmaths reg/S0_masked.nii.gz -bin -ero -ero -ero -s 1 \
+        -mul reg/S0_masked.nii.gz -thrP 5 -bin -s 0.5 -thr 0.8 -bin -s 1 \
+        -mul reg/S0_masked.nii.gz -thrP 5 -bin -s 0.5 -thr 0.95 -bin -s 1 \
+        -mul reg/S0_masked.nii.gz -thrP 50 -bin -s 1.5 -thr 0.1 -bin ${rootdir}/${vol_dir}/temp/cloud_mask2.nii.gz
+    
+    fslmaths $pre_reg_mask -mas ${rootdir}/${vol_dir}/temp/cloud_mask2.nii.gz -s 0.5 -thr 0.5 -bin $pre_reg_mask
+    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -mas $pre_reg_mask reg/S0_masked.nii.gz
+    
+    fslreorient2std $pre_reg_mask $pre_reg_mask
+    fslreorient2std reg/S0_masked.nii.gz reg/S0_masked.nii.gz
+    
+    in_vol=reg/S0_masked.nii.gz
+    
+    rm -r ${rootdir}/${vol_dir}/temp
+
+
 elif [[ "$organism" == "human" ]]; then
 
-    bet $S0_vol ${S0_vol//.nii.gz}_masked.nii.gz -m
-    mv ${S0_vol//.nii.gz}_masked_mask.nii.gz $pre_reg_mask
+    fslmaths $S0_vol -bin $pre_reg_mask
     
-    fslmaths $FA_vol -mas $pre_reg_mask ${FA_vol//.nii.gz}_masked.nii.gz
-    
-    in_vol=${FA_vol//.nii.gz}_masked.nii.gz
+    in_vol=$FA_vol
     
 fi
 
@@ -163,16 +208,36 @@ fslmaths $template -bin -dilD -dilD -dilD -dilD reg/template_mask.nii.gz
 
 fslmaths ${in_vol//.nii.gz}_flirt.nii.gz -mas reg/template_mask.nii.gz ${in_vol//.nii.gz}_flirt.nii.gz
 
-antsRegistration --dimensionality 3 --float 0 \
-    --output [reg/subj_to_template,reg/subj_to_templateWarped.nii.gz,reg/subj_to_templateInverseWarped.nii.gz] \
-    --interpolation Linear --use-histogram-matching 0 --winsorize-image-intensities [0.005,0.995] \
-    --initial-moving-transform [${in_vol//.nii.gz}_flirt.nii.gz,$template,1] \
-    --transform Affine[0.1] \
-    --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
-    --convergence [2000x700x550x200,1e-10,15] --shrink-factors 4x2x1x1 --smoothing-sigmas 3x2x1x0vox \
-    --transform BSplineSyN[0.1,26,0,3] \
-    --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
-    --convergence [100x70x50x20,1e-6,10] --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox
+if [[ "$organism" == "mouse" ]]; then
+
+    antsRegistration --dimensionality 3 --float 0 \
+        --output [reg/subj_to_template,reg/subj_to_templateWarped.nii.gz,reg/subj_to_templateInverseWarped.nii.gz] \
+        --interpolation Linear --use-histogram-matching 0 --winsorize-image-intensities [0.005,0.995] \
+        --initial-moving-transform [${in_vol//.nii.gz}_flirt.nii.gz,$template,1] \
+        --transform Affine[0.1] \
+        --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
+        --convergence [2000x700x550x200,1e-10,15] --shrink-factors 4x2x1x1 --smoothing-sigmas 3x2x1x0vox \
+        --transform BSplineSyN[0.1,26,0,3] \
+        --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
+        --convergence [100x70x50x20,1e-6,10] --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox
+        
+elif [[ "$organism" == "rat" || "$organism" == "human" ]]; then
+
+    antsRegistration --dimensionality 3 --float 0 \
+        --output [reg/subj_to_template,reg/subj_to_templateWarped.nii.gz,reg/subj_to_templateInverseWarped.nii.gz] \
+        --interpolation Linear --use-histogram-matching 0 --winsorize-image-intensities [0.005,0.995] \
+        --initial-moving-transform [${in_vol//.nii.gz}_flirt.nii.gz,$template,1] \
+        --transform Rigid[0.1] \
+        --metric MI[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,32,Regular,0.25] \
+        --convergence [1000x500x250,1e-6,10] --shrink-factors 4x2x1 --smoothing-sigmas 3x2x1vox \
+        --transform Affine[0.05] \
+        --metric MI[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,32,Regular,0.25] \
+        --convergence [1000x500x250,1e-6,10] --shrink-factors 4x2x1 --smoothing-sigmas 3x2x1vox \
+        --transform SyN[0.1,3,0] \
+        --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,6] \
+        --convergence [30x15x5,1e-6,10] --shrink-factors 4x2x1 --smoothing-sigmas 3x2x1vox
+
+fi
 
 #########################################
 # Applying registration to other volumes
@@ -191,6 +256,8 @@ done
 for vol in "${volumes[@]}"
 do
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Working on volume ${vol}"
+    
+    fslreorient2std $vol $vol
     
     flirt -in $vol \
         -ref $template \

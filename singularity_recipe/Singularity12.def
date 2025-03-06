@@ -130,14 +130,16 @@ From: ubuntu:22.04
   sed -i 's/.get_data()/.get_fdata()/g' /opt/conda/envs/diffusionmritoolkit/lib/python3.9/site-packages/mdt/utils.py
   sed -i 's/.get_data()/.get_fdata()/g' /opt/conda/envs/diffusionmritoolkit/lib/python3.9/site-packages/mdt/lib/input_data.py
 
-  strip --remove-section=.note.ABI-tag /opt/conda/envs/diffusionmritoolkit/lib/libQt6Core.so.6
+  # strip --remove-section=.note.ABI-tag /opt/conda/envs/diffusionmritoolkit/lib/libQt6Core.so.6
   strip --remove-section=.note.ABI-tag /usr/lib/x86_64-linux-gnu/libQt6Core.so.6
   
   ##############################
   # Install DSI studio
   ##############################
   # Needs to be the Chen version - Hou version makes weird errors 
-  wget https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2204.zip -O /tmp/dsi_studio.zip
+  # wget https://github.com/frankyeh/DSI-Studio/releases/download/2022.08.03/dsi_studio_ubuntu2204.zip -O /tmp/dsi_studio.zip
+  # Tried a newer version due to issues with thread count - this had a libqtcore6 stripping error, is it bc of this?
+  wget https://github.com/frankyeh/DSI-Studio/releases/download/2023.07.08/dsi_studio_ubuntu2204.zip -O /tmp/dsi_studio.zip
   unzip /tmp/dsi_studio.zip -d /opt/dsi_studio
   rm /tmp/dsi_studio.zip
   ln -s /opt/dsi_studio/dsi-studio/dsi_studio /usr/local/bin/dsi_studio

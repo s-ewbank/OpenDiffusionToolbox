@@ -33,7 +33,13 @@ headmask=nib.load(dtifit_prefix+'_HEADMASK.nii.gz').get_fdata()
 bvec_orig=np.loadtxt(bvec_path)
 bval=np.loadtxt(bval_path)
 b0=np.sum(bval<100)
-bvec=bvec_orig[bval>100]
+
+try:
+    bvec=bvec_orig[bval>100]
+except IndexError:
+    bvec_orig=bvec_orig.T
+    bvec=bvec_orig[bval>100]
+
 bval=bval[bval>100]
 
 def calculate_signal(bvec_in, bval_in, D, S0_in):

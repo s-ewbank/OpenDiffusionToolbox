@@ -54,7 +54,7 @@ design = args.design
 smooth=False
 
 if organism=="mouse":
-    cut_coords=np.arange(-5,5,1.5)
+    cut_coords=np.arange(-3.5,3.5,1.5)
     fwhm=0.1
 elif organism=="rat":
     cut_coords=np.arange(-13,6,2.5)
@@ -258,12 +258,16 @@ if design=="delta":
         tmap_img = nib.Nifti1Image(tmap, affine=affine, header=header)
         tmap_img.to_filename(output_dir+"/"+tmap_name+".nii.gz")
         pmap_img = nib.Nifti1Image(pmap, affine=affine, header=header)
+        tmap_thresh=np.zeros_like(tmap)
+        tmap_thresh[pmap<0.05]=tmap[pmap<0.05]
+        tmap_thresh_img = nib.Nifti1Image(tmap_thresh, affine=affine, header=header)
+        tmap_thresh_img.to_filename(output_dir+"/"+tmap_name+"_thresh.nii.gz")
         print(np.min(pmap_img))
         #adjusted_pmap_img = nib.Nifti1Image(adjusted_pmap, affine=affine, header=header)
         
         template_img = nib.load(avg_vol_dir+"/avg_"+voltype+"_masked.nii.gz")
         
-        nilearn.plotting.plot_stat_map(tmap_img, bg_img=template_img, title="TBSS T-Score Delta "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
+        nilearn.plotting.plot_stat_map(tmap_thresh_img, bg_img=template_img, title="TBSS T-Score Delta "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
                                        threshold=1, cut_coords=cut_coords,cmap="seismic",black_bg=True,
                                        output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=12)
 
@@ -273,6 +277,7 @@ if design=="baseline":
     groups=sorted(list(timepts_dict.keys()))
     
     #cmap="PiYG_r"
+    #cmap="bwr"
     cmap="BrBG_r"
     
     for group in groups:
@@ -399,13 +404,17 @@ if design=="baseline":
         tmap_img = nib.Nifti1Image(tmap, affine=affine, header=header)
         tmap_img.to_filename(output_dir+"/"+tmap_name+".nii.gz")
         pmap_img = nib.Nifti1Image(pmap, affine=affine, header=header)
+        tmap_thresh=np.zeros_like(tmap)
+        tmap_thresh[pmap<0.05]=tmap[pmap<0.05]
+        tmap_thresh_img = nib.Nifti1Image(tmap_thresh, affine=affine, header=header)
+        tmap_thresh_img.to_filename(output_dir+"/"+tmap_name+"_thresh.nii.gz")
         print(np.min(pmap_img))
         #adjusted_pmap_img = nib.Nifti1Image(adjusted_pmap, affine=affine, header=header)
         
         template_img = nib.load(avg_vol_dir+"/avg_"+voltype+"_masked.nii.gz")
         
-        nilearn.plotting.plot_stat_map(tmap_img, bg_img=template_img, title="TBSS T-Score Baseline "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
-                                       threshold=1, cut_coords=cut_coords,cmap=cmap,black_bg=True,
+        nilearn.plotting.plot_stat_map(tmap_thresh_img, bg_img=template_img, title="TBSS T-Score Baseline "+voltype+" " +groups[0]+ " vs. "+groups[1], display_mode="y",annotate=False,
+                                       threshold=0.01, cut_coords=cut_coords,cmap=cmap,black_bg=True,
                                        output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=6)
         
         print("Done computing t-test for volume " + voltype + ", doing clustering")

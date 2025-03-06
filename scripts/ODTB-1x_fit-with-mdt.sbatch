@@ -41,7 +41,7 @@ for volume in "${volumes[@]}"; do
     fi
 done
 
-noddi=0
+noddi=1
 for volume in "${volumes[@]}"; do
     if [[ "$volume" == "NDI" || "$volume" == "ODI" ]]; then
         noddi=1
@@ -107,7 +107,7 @@ bvec=$(find . -name "*.bvec")
 dipy_patch_rad=2
 if [[ "$organism" == "mouse" ]]; then dipy_patch_rad=2; fi
 if [[ "$organism" == "rat" ]]; then dipy_patch_rad=2; fi
-if [[ "$organism" == "human" ]]; then dipy_patch_rad=16; fi
+if [[ "$organism" == "human" ]]; then dipy_patch_rad=2; fi
 
 singularity exec $container_path fslmaths $dwi -Tmean -bin output/initial_dti_fullbinmask.nii.gz
 singularity exec $container_path dtifit --data=$dwi --mask=output/initial_dti_fullbinmask.nii.gz --bvecs=$bvec --bvals=$bval --out=output/initial_dti
@@ -252,13 +252,21 @@ if [[ "$do_slice" == 1 ]]; then
 else
     
     mask=$headmask
+    if [[ "$organism" == "mouse" || "$organism" == "rat" ]]; then
+        mask=$headmask
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Detected organism as ${organism} and using mask ${headmask}"
+    else
+        mask=$brainmask
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Detected organism as ${organism} and using mask ${brainmask}"
+    fi
+    
     protocol=protocol.prtcl
     
     #######################################
     # DTIFIT
     #######################################
     echo ""
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fitting DTI to data with dtifit to slice ${slice_i}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fitting DTI to data with dtifit"
     echo ""
     singularity exec $container_path dtifit --data=$dwi --mask=$mask --bvecs=$bvec --bvals=$bval --out=output/dti_output_dir/dti
     
@@ -267,7 +275,7 @@ else
     #######################################
     if [[ "$noddi" == 1 ]]; then
         echo ""
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fitting NODDI to data with MDT to slice ${slice_i}"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fitting NODDI to data with MDT"
         echo ""
         singularity exec $mdt_container_path env PYOPENCL_NO_CACHE=1 mdt-create-protocol $bvec $bval -o $protocol
         singularity exec $mdt_container_path env PYOPENCL_NO_CACHE=1 mdt-model-fit -o output/noddi_output_dir/ "NODDI" $dwi $protocol $mask
@@ -275,7 +283,7 @@ else
     
     if [[ "$dki" == 1 ]]; then
         echo ""
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fitting DKI to data with DIPY to slice ${slice_i}"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fitting DKI to data with DIPY"
         echo ""
         singularity exec $container_path /opt/conda/envs/diffusionmritoolkit/bin/python ${scripts_dir}/ODTB-1c_dki.py output/kurtosis_output_dir/ $dwi $bval $bvec $mask
         echo ""
