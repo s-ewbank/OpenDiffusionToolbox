@@ -30,7 +30,20 @@ rm ${mk//.nii.gz}_orig.nii.gz
 fi
 
 mv $mk ${mk//.nii.gz}_orig.nii.gz
-fslmaths ${mk//.nii.gz}_orig.nii.gz -mas ${atlas_dir}/mouse/P56_MASK_100um.nii.gz ${mk//.nii.gz}_orig_masked.nii.gz
+if [[ "$organism" == "mouse" ]]; then
+
+    mask=${atlas_dir}/mouse/P56_MASK_100um.nii.gz
+    
+elif [[ "$organism" == "rat" ]]; then
+
+    mask=${atlas_dir}/rat/WHS_SD_rat_BRAIN_MASK.nii.gz
+    
+elif [[ "$organism" == "human" ]]; then
+
+    mask=${atlas_dir}/human/atlas_mask.nii.gz
+    
+fi
+fslmaths ${mk//.nii.gz}_orig.nii.gz -mas $mask ${mk//.nii.gz}_orig_masked.nii.gz
 
 fslmaths ${mk//.nii.gz}_orig.nii.gz -max -5 -min 5 $mk
 

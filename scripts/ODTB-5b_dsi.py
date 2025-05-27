@@ -4,7 +4,7 @@ import sys
 
 data_dir = sys.argv[1]
 
-stat_files = [i for i in os.listdir(data_dir) if ".stat." in i]
+stat_files = sorted([i for i in os.listdir(data_dir) if ".stat." in i])
 
 all_data=[]
 

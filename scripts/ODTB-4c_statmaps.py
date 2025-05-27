@@ -344,7 +344,7 @@ if design=="delta":
         print("plotting stat map")
         nilearn.plotting.plot_stat_map(final_tmap_img, bg_img=template_img, title="Thresh T-Score Delta "+voltype+" " +groups[0]+ " (" + str(group_subjs[groups[0]]) +") vs. "+groups[1] + " ("+str(group_subjs[groups[1]]) +")", display_mode="y",annotate=False,
                                        threshold=voxel_threshold, cut_coords=cut_coords,cmap="seismic",black_bg=True,
-                                       output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=12)
+                                       output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=12,vmin=-12)
         # If using pop, you can do: "/thresholded_"+tmap_name+"_pop"+str(pop_number)+".png"
         
         del tmap
@@ -361,8 +361,8 @@ if design=="baseline":
     groups=sorted(list(timepts_dict.keys()))
     
     #cmap="PiYG_r"
-    #cmap="BrBG_r"
-    cmap="seismic"
+    cmap="BrBG_r"
+    #cmap="seismic"
     
     for group in groups:
         print("Group "+str(group)+" contains:")
@@ -517,7 +517,7 @@ if design=="baseline":
         print("plotting stat map")
         nilearn.plotting.plot_stat_map(final_tmap_img, bg_img=template_img, title="Thresh T-Score Baseline "+voltype+" " +groups[0]+" (" + str(group_subjs[groups[0]]) + ") vs. "+groups[1] + " (" + str(group_subjs[groups[1]]) + ")", display_mode="y",annotate=False,
                                        threshold=voxel_threshold, cut_coords=cut_coords,cmap=cmap,black_bg=True,
-                                       output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=6)
+                                       output_file=output_dir+"/thresholded_"+tmap_name+".png",dim=1,vmax=6,vmin=-6)
         # If using pop, you can do: "/thresholded_"+tmap_name+"_pop"+str(pop_number)+".png"
         
         del tmap

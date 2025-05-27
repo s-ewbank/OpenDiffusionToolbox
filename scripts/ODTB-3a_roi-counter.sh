@@ -37,11 +37,9 @@ elif [[ "$organism" == "rat" ]]; then
     
 elif [[ "$organism" == "human" ]]; then
 
-    template_path=${atlas_dir}/human/HarvardOxford-ALL-maxprob-thr50-1mm.nii.gz
+    template_path=${atlas_dir}/human/HarvardOxford-ALL-LRcollapse-maxprob-thr50-1mm.nii.gz
     lut_path=${atlas_dir}/human/human_lut.csv
-    fslmaths ${atlas_dir}/human/HarvardOxford-cort-maxprob-thr50-1mm.nii.gz \
-        -add ${atlas_dir}/human/HarvardOxford-cort-maxprob-thr50-1mm.nii.gz \
-        -bin $mask_path
+    cp ${atlas_dir}/human/atlas_mask.nii.gz $mask_path
     
 fi
 

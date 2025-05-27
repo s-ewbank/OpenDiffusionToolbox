@@ -118,67 +118,42 @@ if [[ "$organism" == "mouse" ]]; then
     mv $in_vol reg
 
 elif [[ "$organism" == "rat" ]]; then
-
-    pre_reg_mask=postreg_mask_origspace.nii.gz
-    fslmaths $pre_reg_mask -s 0.5 -thr 0.9 -bin ${pre_reg_mask//.nii.gz}_edge.nii.gz
-    fslmaths $pre_reg_mask -s 0.5 -thr 0.3 -bin -mul ${S0_vol//.nii.gz}_restore.nii.gz -thrP 15 -bin -add ${pre_reg_mask//.nii.gz}_edge.nii.gz -bin -ero -dilD ${pre_reg_mask//.nii.gz}_adjust.nii.gz
-    pre_reg_mask=${pre_reg_mask//.nii.gz}_adjust.nii.gz
-    rm ${pre_reg_mask//.nii.gz}_edge.nii.gz
+        
     
-#    mkdir ${rootdir}/${vol_dir}/temp
-#    
-#	echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing bias correction-like step for rat."
-#	p50=$(fslstats $S0_vol -P 50 | awk '{print $1}')
-#	fslmaths $S0_vol -s 0.5 -max $S0_vol -s 0.2 -div $p50 ${S0_vol//.nii.gz}_bias.nii.gz
-#	fslmaths $S0_vol -div ${S0_vol//.nii.gz}_bias.nii.gz ${S0_vol//.nii.gz}_intermed.nii.gz
-#	p10=$(fslstats ${S0_vol//.nii.gz}_intermed.nii.gz -P 10 | awk '{print $1}')
-#	p85=$(fslstats ${S0_vol//.nii.gz}_intermed.nii.gz -P 85 | awk '{print $1}')
-#	fslmaths ${S0_vol//.nii.gz}_intermed.nii.gz -max $p10 -min $p85 -mul 3 -add $S0_vol -div 4 ${S0_vol//.nii.gz}_restore.nii.gz
-#	rm ${S0_vol//.nii.gz}_bias.nii.gz ${S0_vol//.nii.gz}_intermed.nii.gz
+    mkdir ${rootdir}/${vol_dir}/temp
     
-#    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extracting brain"
-#    # Take square root and do initial thresholding at 40th percentile
-#    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -sqrt ${rootdir}/${vol_dir}/temp/sqrt.nii.gz
-#    fslmaths ${rootdir}/${vol_dir}/temp/sqrt.nii.gz -thrP 40 ${rootdir}/${vol_dir}/temp/thresh.nii.gz
+	echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing bias correction-like step for rat."
+	p50=$(fslstats $S0_vol -P 50 | awk '{print $1}')
+	fslmaths $S0_vol -s 0.5 -max $S0_vol -s 0.2 -div $p50 ${S0_vol//.nii.gz}_bias.nii.gz
+	fslmaths $S0_vol -div ${S0_vol//.nii.gz}_bias.nii.gz ${S0_vol//.nii.gz}_intermed.nii.gz
+	p10=$(fslstats ${S0_vol//.nii.gz}_intermed.nii.gz -P 10 | awk '{print $1}')
+	p85=$(fslstats ${S0_vol//.nii.gz}_intermed.nii.gz -P 85 | awk '{print $1}')
+	fslmaths ${S0_vol//.nii.gz}_intermed.nii.gz -max $p10 -min $p85 -mul 3 -add $S0_vol -div 4 ${S0_vol//.nii.gz}_restore.nii.gz
+	rm ${S0_vol//.nii.gz}_bias.nii.gz ${S0_vol//.nii.gz}_intermed.nii.gz
     
-#    p80=$(fslstats ${rootdir}/${vol_dir}/temp/thresh.nii.gz -P 80 | awk '{print $1}')
-#    fslmaths ${rootdir}/${vol_dir}/temp/thresh.nii.gz -min $p80 ${rootdir}/${vol_dir}/temp/thresh.nii.gz
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Extracting brain"
+    # Take square root and do initial thresholding at 40th percentile
+    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -sqrt ${rootdir}/${vol_dir}/temp/sqrt.nii.gz
+    fslmaths ${rootdir}/${vol_dir}/temp/sqrt.nii.gz -thrP 40 ${rootdir}/${vol_dir}/temp/thresh.nii.gz
     
-#    # Binarize, smooth, threshold and binarize to get a mask excluding peripheral voxels which have survived thresholding, then smooth to create a cloud and multiply by original image
-#    fslmaths ${rootdir}/${vol_dir}/temp/thresh.nii.gz -bin -s 4.5 -thrP 80 -bin -s 4.5 ${rootdir}/${vol_dir}/temp/cloud.nii.gz
-#    fslmaths ${rootdir}/${vol_dir}/temp/cloud.nii.gz -mul ${S0_vol//.nii.gz}_restore.nii.gz -thrP 20 ${rootdir}/${vol_dir}/temp/cloud_intermed.nii.gz
-#    fslmaths ${rootdir}/${vol_dir}/temp/cloud_intermed.nii.gz -bin -s 2 -thr 0.1 -bin ${rootdir}/${vol_dir}/temp/cloud_mask.nii.gz
-#    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -mas ${rootdir}/${vol_dir}/temp/cloud_mask.nii.gz -thrP 20 -bin -ero -ero -dilD -dilD ${rootdir}/${vol_dir}/temp/protomask.nii.gz
+    p85=$(fslstats ${rootdir}/${vol_dir}/temp/thresh.nii.gz -P 85 | awk '{print $1}')
+    fslmaths ${rootdir}/${vol_dir}/temp/thresh.nii.gz -min $p85 ${rootdir}/${vol_dir}/temp/thresh.nii.gz
     
-#    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Masking non-brain tissue"
-#    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -mas ${rootdir}/${vol_dir}/temp/protomask.nii.gz reg/S0_masked.nii.gz
+    # Binarize, smooth, threshold and binarize to get a mask excluding peripheral voxels which have survived thresholding, then smooth to create a cloud and multiply by original image
+    fslmaths ${rootdir}/${vol_dir}/temp/thresh.nii.gz -bin -s 4.5 -thrP 80 -bin -s 4.5 ${rootdir}/${vol_dir}/temp/cloud.nii.gz
+    fslmaths ${rootdir}/${vol_dir}/temp/cloud.nii.gz -mul ${S0_vol//.nii.gz}_restore.nii.gz -thrP 20 ${rootdir}/${vol_dir}/temp/cloud_intermed.nii.gz
+    fslmaths ${rootdir}/${vol_dir}/temp/cloud_intermed.nii.gz -bin -ero -ero -ero -s 1.5 -thr 0.1 -bin -dilD -dilD ${rootdir}/${vol_dir}/temp/cloud_mask.nii.gz
+    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -mas ${rootdir}/${vol_dir}/temp/cloud_mask.nii.gz -thrP 20 -bin -ero -ero -dilD -dilD $pre_reg_mask
     
-#    fslmaths reg/S0_masked.nii.gz -bin -ero -ero -ero -s 1 \
-#        -mul reg/S0_masked.nii.gz -thrP 5 -bin -s 0.5 -thr 0.8 -bin -s 1 \
-#        -mul reg/S0_masked.nii.gz -thrP 5 -bin -s 0.5 -thr 0.95 -bin -s 1 \
-#        -mul reg/S0_masked.nii.gz -thrP 60 -bin -s 1.5 -thr 0.1 -bin ${rootdir}/${vol_dir}/temp/cloud_mask2.nii.gz
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Masking non-brain tissue"
+    fslmaths ${S0_vol//.nii.gz}_restore.nii.gz -mas $pre_reg_mask reg/S0_masked.nii.gz
     
-#    fslmaths ${rootdir}/${vol_dir}/temp/protomask.nii.gz -mas ${rootdir}/${vol_dir}/temp/cloud_mask2.nii.gz -s 0.5 -thr 0.7 -bin $pre_reg_mask
+    fslmaths reg/S0_masked.nii.gz -bin -ero -ero -ero -s 1 \
+        -mul reg/S0_masked.nii.gz -thrP 5 -bin -s 0.5 -thr 0.8 -bin -s 1 \
+        -mul reg/S0_masked.nii.gz -thrP 5 -bin -s 0.5 -thr 0.95 -bin -s 1 \
+        -mul reg/S0_masked.nii.gz -thrP 50 -bin -s 1.5 -thr 0.1 -bin ${rootdir}/${vol_dir}/temp/cloud_mask2.nii.gz
     
-#    echo "Final prereg mask size:"
-#    mask_volume=$(fslstats $pre_reg_mask -V | awk '{print $2}')
-#    echo $mask_volume
-    
-#    if (( $(echo "$mask_volume < 1500" | bc -l) )); then
-#    
-#        echo "Bad size! <1500 mm3"
-#        fslmaths reg/S0_masked.nii.gz -bin -s 1 \
-#            -mul reg/S0_masked.nii.gz -thrP 5 -bin -s 0.5 -thr 0.6 -bin -s 1 \
-#            -mul reg/S0_masked.nii.gz -thrP 5 -bin -s 0.5 -thr 0.7 -bin -s 1 \
-#            -mul reg/S0_masked.nii.gz -thrP 50 -bin -s 1.5 -thr 0.1 -bin ${rootdir}/${vol_dir}/temp/cloud_mask3.nii.gz
-#    
-#        fslmaths ${rootdir}/${vol_dir}/temp/protomask.nii.gz -mas ${rootdir}/${vol_dir}/temp/cloud_mask3.nii.gz -s 0.5 -thr 0.3 -bin $pre_reg_mask
-#        
-#        echo "New final prereg mask size:"
-#        mask_volume=$(fslstats $pre_reg_mask -V | awk '{print $2}')
-#        echo $mask_volume
-#    
-#    fi
+    fslmaths $pre_reg_mask -mas ${rootdir}/${vol_dir}/temp/cloud_mask2.nii.gz -s 0.5 -thr 0.5 -bin $pre_reg_mask
     
     cp $FA_vol reg/FA.nii.gz
     fslmaths reg/FA.nii.gz -mas $pre_reg_mask reg/FA_masked.nii.gz
@@ -187,7 +162,7 @@ elif [[ "$organism" == "rat" ]]; then
     
     in_vol=reg/FA_masked.nii.gz
     
-    #rm -r ${rootdir}/${vol_dir}/temp
+    rm -r ${rootdir}/${vol_dir}/temp
 
 
 elif [[ "$organism" == "human" ]]; then

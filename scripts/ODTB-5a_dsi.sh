@@ -63,7 +63,8 @@ if [[ "$organism" == "mouse" ]]; then
     
 elif [[ "$organism" == "rat" ]]; then
 
-    label_path=${atlas_dir}/rat/WHS_SD_rat_BRAIN_ATLAS.nii.gz
+    label_path=${atlas_dir}/rat/PH_sub_atlas.nii.gz
+    fulllabel_path=${atlas_dir}/rat/WHS_SD_rat_BRAIN_ATLAS.nii.gz
     mask=${atlas_dir}/rat/WHS_SD_rat_BRAIN_MASK.nii.gz
     
 elif [[ "$organism" == "human" ]]; then
@@ -145,6 +146,13 @@ dsi_studio --action=ana \
     --connectivity=${out_dir}/fullatlas_origspace.nii.gz \
     --other_slices=${volume_paths_csv} \
     --connectivity_value=${volume_names_csv} \
+    --thread_count=$SLURM_CPUS_PER_TASK \
+    --connectivity_output=connectogram
+    
+dsi_studio --action=ana \
+    --source=${out_dir}/${out_fname}_DSI.fib.gz \
+    --tract=${out_dir}/${out_fname}_DSI.tt.gz \
+    --connectivity=${out_dir}/fullatlas_origspace.nii.gz \
     --thread_count=$SLURM_CPUS_PER_TASK \
     --connectivity_output=connectogram
 

@@ -104,6 +104,17 @@ dwi=$(singularity exec $container_path find . -name "*.nii.gz" -exec sh -c 'for 
 bval=$(find . -name "*.bval")
 bvec=$(find . -name "*.bvec")
 
+#singularity exec $mdt_container_path env PYOPENCL_NO_CACHE=1 mdt-create-protocol $bvec $bval -o test.prtcl --cl-device-ind 0
+#
+#if [ ! -f "test.prtcl" ]; then
+#    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Test protocol not created, so failure with pyopencl is inferred. Breaking script."
+#    sbatch ${scripts_dir}/ODTB-1x_fit-with-mdt.sbatch --config $config_path --dir $d
+#    exit 1
+#fi
+#
+#echo "[$(date '+%Y-%m-%d %H:%M:%S')] Test protocol created, pyopencl must be working - proceeding with the script."
+#rm test.prtcl
+
 dipy_patch_rad=2
 if [[ "$organism" == "mouse" ]]; then dipy_patch_rad=2; fi
 if [[ "$organism" == "rat" ]]; then dipy_patch_rad=2; fi
