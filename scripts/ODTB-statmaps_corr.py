@@ -218,21 +218,21 @@ if design=="baseline":
         y_dim=pmap.shape[1]
         z_dim=pmap.shape[2]
         
-        for slice in range(n_slices):
-            im_slice=[vol[slice,:,:] for vol in imgs_data_nan]
-            corr_dat_slice=[np.ones_like(im_slice[0])*c for c in corr_data]
-            result=pearsonr(im_slice,corr_dat_slice,axis=0)
-            corrmap[slice,:,:]=result.statistic
-            pmap[slice,:,:]=result.pvalue
+#        for slice in range(n_slices):
+#            im_slice=[vol[slice,:,:] for vol in imgs_data_nan]
+#            corr_dat_slice=[np.ones_like(im_slice[0])*c for c in corr_data]
+#            result=pearsonr(im_slice,corr_dat_slice,axis=0)
+#            corrmap[slice,:,:]=result.statistic
+#            pmap[slice,:,:]=result.pvalue
         
-        #for slice in range(n_slices):
-        #    print(f"slice {slice+1} of {n_slices}")
-        #    for y in range(y_dim):
-        #        for z in range(z_dim):
-        #            im_line=np.array([vol[slice,y,z] for vol in imgs_data])
-        #            result=spearmanr(im_line,corr_data,nan_policy="omit")
-        #            corrmap[slice,y,z]=result.statistic
-        #            pmap[slice,y,z]=result.pvalue
+        for slice in range(n_slices):
+            print(f"slice {slice+1} of {n_slices}")
+            for y in range(y_dim):
+                for z in range(z_dim):
+                    im_line=np.array([vol[slice,y,z] for vol in imgs_data])
+                    result=spearmanr(im_line,corr_data,nan_policy="omit")
+                    corrmap[slice,y,z]=result.statistic
+                    pmap[slice,y,z]=result.pvalue
         
         del result
         del imgs_data_nan

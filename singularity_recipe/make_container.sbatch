@@ -7,7 +7,8 @@
 #SBATCH --mail-user=snewbank@stanford.edu
 #SBATCH --output=/scratch/groups/rairan/NODDI/test/slurm-%j.out
 
-#Currently diffusiontoolkit-DEV.sif is based on Singularity12.def
-#And diffusiontoolkit.sif is based on Singularity11.def
+# Currently diffusiontoolkit-DEV.sif is based on Singularity12.def
+# And diffusiontoolkit.sif is based on Singularity11.def
+# Singularity_FINAL-v2 edit is to accept conda terms of service (otherwise get nonresponse error)
 
-singularity build /scratch/groups/rairan/NODDI/test/diffusiontoolkit-FINAL.sif /home/groups/rairan/OpenDiffusionToolbox/singularity_recipe/Singularity_FINAL.def
+singularity build /scratch/groups/rairan/NODDI/test/diffusiontoolkit-FINAL.sif /home/groups/rairan/OpenDiffusionToolbox/singularity_recipe/Singularity_FINAL-v2.def

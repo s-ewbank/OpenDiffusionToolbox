@@ -35,12 +35,14 @@ cd $d
 mkdir stats
 
 cp $template stats/mean_FA.nii.gz
-fslmaths stats/mean_FA.nii.gz -bin stats/mean_FA_mask.nii.gz
+fslmaths stats/mean_FA.nii.gz -bin -ero -ero stats/mean_FA_mask.nii.gz
 
 cp *_FA_reg.nii.gz stats/all_FA.nii.gz
+fslmaths stats/mean_FA_mask.nii.gz -mul 0 -bin stats/empty_search_rule_mask.nii.gz
 
+fslmaths stats/mean_FA.nii.gz -mas stats/mean_FA_mask.nii.gz stats/mean_FA.nii.gz
 tbss_skeleton -i stats/mean_FA.nii.gz -o stats/mean_FA_skeleton.nii.gz
-tbss_4_prestats 0.22
+tbss_4_prestats 0.18
 
 mkdir stats/${d}_tbss
 
@@ -53,10 +55,11 @@ do
     cd stats
     fslmaths ${vol_reg} -mas mean_FA_mask.nii.gz ${vol_reg}
     thresh=`cat thresh.txt`
-    tbss_skeleton -i mean_FA -p $thresh mean_FA_skeleton_mask_dst ${FSLDIR}/data/standard/LowerCingulum_1mm all_FA ${d}_tbss/${vol_reg//_reg.nii.gz}_sk.nii.gz -a ${vol_reg}
+    tbss_skeleton -i mean_FA -p $thresh mean_FA_skeleton_mask_dst empty_search_rule_mask.nii.gz all_FA ${d}_tbss/${vol_reg//_reg.nii.gz}_sk.nii.gz -a ${vol_reg}
     cd ..
     
 done
 
 mv stats/${d}_tbss $tbss_dir
+fslmaths stats/mean_FA_skeleton.nii.gz -bin ${tbss_dir}/sk.nii.gz
 rm -r stats

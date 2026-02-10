@@ -50,7 +50,7 @@ if [[ "$organism" == "mouse" ]]; then
     label_path=${atlas_dir}/mouse/atlas_levels/ATLAS_LVL6_100um.nii.gz
     fulllabel_path=${atlas_dir}/mouse/atlas_levels/ATLAS_ALL_100um.nii.gz
     mask=${rootdir}/mask.nii.gz
-    fslmaths ${atlas_dir}/mouse/P56_MASK_100um.nii.gz -ero -ero $mask
+    #fslmaths ${atlas_dir}/mouse/P56_MASK_100um.nii.gz -ero -ero $mask
     
 elif [[ "$organism" == "rat" ]]; then
 

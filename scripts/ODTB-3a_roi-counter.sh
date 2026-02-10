@@ -20,26 +20,25 @@ source ${filedir}/../READ_CONFIG.sh $config_path
 rootdir=${rootdir}/batch_output/batch_reg_output/
 output_dir=${rootdir}/roi_analysis_output/
 
-atlas_dir=/scratch/users/snewbank/atlases/
 mask_path=${rootdir}/${d}/atlas_mask.nii.gz
 
 if [[ "$organism" == "mouse" ]]; then
 
-    template_path=${atlas_dir}/mouse/atlas_levels/ATLAS_ALL_100um.nii.gz
-    lut_path=${atlas_dir}/mouse/ABA_mouse_lut.csv
-    cp ${atlas_dir}/mouse/P56_MASK_100um.nii.gz $mask_path
+    template_path=${atlas_path}/mouse/atlas_levels/ATLAS_ALL_100um.nii.gz
+    lut_path=${atlas_path}/mouse/ABA_mouse_lut.csv
+    cp ${atlas_path}/mouse/P56_MASK_100um.nii.gz $mask_path
     
 elif [[ "$organism" == "rat" ]]; then
 
-    template_path=${atlas_dir}/rat/WHS_SD_rat_BRAIN_ATLAS.nii.gz
-    lut_path=${atlas_dir}/rat/WHS_SD_rat_lut.csv
-    cp ${atlas_dir}/rat/WHS_SD_rat_BRAIN_MASK.nii.gz $mask_path
+    template_path=${atlas_path}/rat/WHS_SD_rat_BRAIN_ATLAS.nii.gz
+    lut_path=${atlas_path}/rat/WHS_SD_rat_lut.csv
+    cp ${atlas_path}/rat/WHS_SD_rat_BRAIN_MASK.nii.gz $mask_path
     
 elif [[ "$organism" == "human" ]]; then
 
-    template_path=${atlas_dir}/human/HarvardOxford-ALL-LRcollapse-maxprob-thr50-1mm.nii.gz
-    lut_path=${atlas_dir}/human/human_lut.csv
-    cp ${atlas_dir}/human/atlas_mask.nii.gz $mask_path
+    template_path=${atlas_path}/human/HarvardOxford-ALL-maxprob-thr50-1mm.nii.gz
+    lut_path=${atlas_path}/human/human_lut.csv
+    cp ${atlas_path}/human/atlas_mask.nii.gz $mask_path
     
 fi
 

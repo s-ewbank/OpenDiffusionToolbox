@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -p normal
-#SBATCH -c 1
 #SBATCH --cpus-per-task=4
-#SBATCH --time 48:00:00
+#SBATCH --time 0:10:00
 #SBATCH --mail-type=NONE
+#SBATCH --job-name=ODTB
 #SBATCH --mail-user=snewbank@stanford.edu
 #SBATCH --output=/scratch/users/snewbank/slurm_output//slurm-%j.out
 #

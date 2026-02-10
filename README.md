@@ -38,33 +38,49 @@ Once you have this, you may proceed to the following steps. Making the config an
    bash MAKE_CONFIG.sh
    ```
    and answering all subsequent prompts.
-2. Use the script to fit DTI/NODDI metrics with
+2. Use the script to fit DTI/NODDI metrics by setting the step flag to "fit":
    ```
    bash RUN_SCRIPTS.sh --config <path/to/config> --step fit
    ```
-3. Then register with
+3. Then run a two-step (linear and nonlinear) registration to an atlas with step flag set to "reg":
    ```
    bash RUN_SCRIPTS.sh --config <path/to/config> --step reg
    ```
-### Analysis
-After doing the "fit" and "reg" steps, you may move on to doing analysis! Note that the analyses are based on the groups CSV file specified in the config as "groups_file", and a dummy version of this file needing only unique timepoint and condition labels is made during creation of the config file.
-4. Quantify signal within atlas regions using:
+### ROI-based analysis
+After doing the "fit" and "reg" steps, you may move on to doing analysis! As a first step, we can extract the signal in all atlas regions.
+4. Quantify signal within atlas regions with step flag set to "roi":
    ```
    bash RUN_SCRIPTS.sh --config <path/to/config> --step roi
    ```
-5. Get full-study average volumes with:
+### Spatial voxel-wise analysis
+A next step is to do spatial voxel-wise analysis, either through TBSS or through whole-brain voxel-wise analysis. Note that the analyses are based on the groups CSV file specified in the config as "groups_file", and a dummy version of this file needing only unique timepoint and condition labels is made during creation of the config file. For executing voxel-wise statistical comparisons, I have commands to use FSL randomise as well as my own custom Python-based voxel-wise, cluster size thresholded comparisons.
+5. Get full-study average volumes with step flag set to "vba_avg" (you will need this for voxel-wise steps!):
    ```
    bash RUN_SCRIPTS.sh --config <path/to/config> --step vba_avg
    ```
-6. Do tractography analysis with:
-   ```
-   bash RUN_SCRIPTS.sh --config <path/to/config> --step tract
-   ```
-7. Do tbss with:
+6a. Extract tbss skeletons for all volumes with step flag set to "tbss_1":
    ```
    bash RUN_SCRIPTS.sh --config <path/to/config> --step tbss
    ```
-8. Finally, run voxel-based group comparisons using vba_compare with the added --design flag set to a valid option (baseline, delta, longitudinal for full volume or baseline_tbss, delta_tbss, longitudinal_tbss for TBSS voxels). The comparison will use the group assignments designated in the groups CSV file indicated in the config file. An example is as follows:
+6b. Then, execute tract-based spatial statistical comparison with FSL randomise (for group files as defined in groups .csv file specified in config) by setting step flag to "tbss_2":
    ```
-   bash RUN_SCRIPTS.sh --config <path/to/config> --step vba_compare --design delta
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step tbss
+   ```
+7a. For whole-brain voxel-wise analysis with FSL randomise for statistical computations, set step flag to "vba" and add design flag set to "baseline" (for 2 group, 1 timepoint comparisons), "delta" (for 2 group, 2 timepoint comparisons), or "correlate" (for 1 group with a variable to correlate added to the groups file in a new column):
+   ```
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step vba_randomise --design <baseline/delta/correlate>
+   ```
+7b. Alternatively, run whole-brain voxel-wise analysis with my custom cluster-based, voxel-wise analysis approach with step flag set to "vba_compare" and design set to "baseline", "delta", or "longitudinal".
+   ```
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step vba_compare --design <baseline/delta/longitudinal>
+   ```
+### Tractography-based analysis
+A next step is to do tractography based analysis. These implementations (particularly probabalistic tractography) have not been as thoroughly tested as the other method implementations (e.g., registration, ROI-based, voxel-wise)
+8. Do DSI-based deterministic tractography analysis with step flag set to "tract":
+   ```
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step tract
+   ```
+9. Do FSL-based probabalistic tractography analysis with step flag set to "probtrackx":
+   ```
+   bash RUN_SCRIPTS.sh --config <path/to/config> --step tract
    ```

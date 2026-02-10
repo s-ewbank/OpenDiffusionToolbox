@@ -40,7 +40,7 @@ if [[ -z "$config_path" || -z "$step" ]]; then
   echo "               > vba_correlate       : do a statistical map of correlation between imaging metrics and an independent scalar"
   echo "               > tract               : do deterministic tractography with dsi_studio."
   echo "               > tbss                : do tract-based statistics."
-  echo "  --design : used and required only by step vba_compare; options are -"
+  echo "  --design : used and required only by step vba_compare and randomise_v2; options are -"
   echo "               > baseline            : no timepoints, just compare metrics"
   echo "               > delta               : for 2 timepoints only - compute delta"
   echo "               > longitudinal        : multiple timepoints" 
@@ -54,6 +54,10 @@ fi
 
 filedir="$(cd "$(dirname "$BASH_SOURCE")" && pwd)"
 source ${filedir}/READ_CONFIG.sh $config_path
+
+sed -i 's/^#SBATCH --cpus-per-task.*/#SBATCH --cpus-per-task=4/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+sed -i 's/^#SBATCH --mem.*/#SBATCH --mem=4G/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+sed -i 's/^#SBATCH --job-name.*/#SBATCH --job-name=ODTB/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
 
 for file in $(find "$scripts_dir" -type f); do
     sed -i "s|^#SBATCH --mail-type=.*|#SBATCH --mail-type=${mailtype}|" "$file"
@@ -77,7 +81,12 @@ if [[ "$step" == "fit" ]]; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing DTI fitting"
         
         # Change job length
-        sed -i 's/^#SBATCH --time .*/#SBATCH --time 6:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+        if [[ "$organism" == "mouse" || "$organism" == "rat" ]]; then
+            sed -i 's/^#SBATCH --time .*/#SBATCH --time 6:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+        fi
+        if [[ "$organism" == "human" ]]; then
+            sed -i 's/^#SBATCH --time .*/#SBATCH --time 12:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+        fi
         
         cd $rootdir
         mkdir batch_output
@@ -98,6 +107,17 @@ if [[ "$step" == "fit" ]]; then
         # 1x - DTI AND NODDI FITTING - MDT only works here for now.
         #########################################
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing DTI and NODDI fitting"
+        
+        
+        sed -i 's/^#SBATCH --job-name.*/#SBATCH --job-name=ODTB-fit/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+        
+        # Change job length
+        if [[ "$organism" == "mouse" || "$organism" == "rat" ]]; then
+            sed -i 's/^#SBATCH --time .*/#SBATCH --time 8:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+        fi
+        if [[ "$organism" == "human" ]]; then
+            sed -i 's/^#SBATCH --time .*/#SBATCH --time 12:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+        fi
         
         cd $rootdir
         subdirs=$(find . -mindepth 1 -maxdepth 1 -type d)
@@ -182,6 +202,7 @@ elif [[ "$step" == "reg" ]]; then
     
     # Change job length
     sed -i 's/^#SBATCH --time .*/#SBATCH --time 48:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --job-name.*/#SBATCH --job-name=ODTB-reg/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
     
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Identified $n_subdirs subdirectories in root directory for registration in ${rootdir}/batch_output"
     echo " "
@@ -217,9 +238,13 @@ elif [[ "$step" == "reg_apply" ]]; then
     
     for d in $subdirs
     do
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running registration script on subdir $count called $d."
-        bash ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-2x_register-apply.sh --dir $d
         count=$(($count+1))
+        if [ ! -d batch_reg_output/${d}_reg_output ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running registration script on subdir $count called $d."
+            bash ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-2x_register-apply.sh --dir $d
+        else
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Skipping subdir $count called $d because output directory was found."
+        fi
     done
     
 elif [[ "$step" == "reg_studyFA" ]]; then
@@ -234,6 +259,7 @@ elif [[ "$step" == "reg_studyFA" ]]; then
     
     # Change job length
     sed -i 's/^#SBATCH --time .*/#SBATCH --time 48:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --job-name.*/#SBATCH --job-name=ODTB-reg/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
     
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Identified $n_subdirs subdirectories in root directory for registration in ${rootdir}/batch_output"
     echo " "
@@ -293,8 +319,12 @@ elif [[ "$step" == "mk_clip" ]]; then
     
     for d in $subdirs
     do
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running registration script on subdir $count called $d."
-        bash ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-misc_mk-clip.sh --dir $d
+        if [ ! -f ${d}/${d//_reg_output}_MK_reg_orig.nii.gz ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running mk_clip script on subdir $count called $d."
+            bash ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-misc_mk-clip.sh --dir $d
+        else
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Skipping subdir $count called $d, mk_clip done"
+        fi
         count=$(($count+1))
     done
 
@@ -574,6 +604,7 @@ elif [[ "$step" == "tract" ]]; then
     
     # Change job length
     sed -i 's/^#SBATCH --time .*/#SBATCH --time 0:30:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --job-name.*/#SBATCH --job-name=ODTB-dsi-tract/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
 
     cd $rootdir
     subdirs=$(ls)
@@ -589,8 +620,41 @@ elif [[ "$step" == "tract" ]]; then
         #bash ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-dsi_patch.sh --dir $d
         count=$(($count+1))
     done
+    
+elif [[ "$step" == "probtrackx" ]]; then
+    #########################################
+    # 3c - PROBABILISTIC TRACTOGRAPHY
+    #########################################
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing tractography-based analysis"
+    
+    # Change job length
+    sed -i 's/^#SBATCH --time .*/#SBATCH --time 18:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --job-name.*/#SBATCH --job-name=ODTB-probtrackx/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
 
-elif [[ "$step" == "tbss" ]]; then
+    cd $rootdir
+    subdirs=$(ls)
+    n_subdirs=`find . -mindepth 1 -maxdepth 1 -type d | wc -l`
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Identified $n_subdirs subdirectories in root directory for probabilistic fiber tracking with bedpostx / probtrackx in $rootdir"
+    echo " "
+    count=1
+    
+    for d in $subdirs
+    do
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running probabilistic tractography script on subdir $count called $d."
+        sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-5c_probtrackx.sh --dir $d
+        count=$(($count+1))
+    done
+    
+elif [[ "$step" == "combine_probtrackx_outputs" ]]; then
+    #########################################
+    # 3c - COMBINE PROBABILISTIC TRACTOGRAPHY OUTPUTS
+    #########################################
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Combining tractography-based analysis outputs"
+
+    cd $rootdir
+    singularity exec $container_path /opt/conda/envs/diffusionmritoolkit/bin/python ${scripts_dir}/ODTB-5d_probtrackx_combine.py $rootdir
+
+elif [[ "$step" == "tbss_1" ]]; then
     #########################################
     # 3c - TRACT-BASED SPATIAL STATISTICS
     #########################################
@@ -598,6 +662,7 @@ elif [[ "$step" == "tbss" ]]; then
     
     # Change job length
     sed -i 's/^#SBATCH --time .*/#SBATCH --time 0:10:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --job-name.*/#SBATCH --job-name=ODTB-tbss/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
     
     cd ${rootdir}/batch_output/batch_reg_output
     subdirs=$(ls)
@@ -620,7 +685,7 @@ elif [[ "$step" == "origspace" ]]; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing original space statistics"
     
     # Change job length
-    sed -i 's/^#SBATCH --time .*/#SBATCH --time 0:30:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --time .*/#SBATCH --time 0:10:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
 
     cd $rootdir
     subdirs=$(ls)
@@ -632,7 +697,7 @@ elif [[ "$step" == "origspace" ]]; then
     for d in $subdirs
     do
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running original space stats script on subdir $count called $d."
-        bash ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-misc_reverseregq.sh --dir $d
+        sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-misc_reverseregq.sh --dir $d
         count=$(($count+1))
     done
     
@@ -658,6 +723,69 @@ elif [[ "$step" == "reverse_warp_mask" ]]; then
         bash ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-miscX_masks.sh --dir $d
         count=$(($count+1))
     done
+    
+elif [[ "$step" == "tbss_2" ]]; then
+    #########################################
+    # misc - RANDOMISE
+    #########################################
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing randomise"
+    
+    sed -i 's/^#SBATCH --time .*/#SBATCH --time 8:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --cpus-per-task.*/#SBATCH --cpus-per-task=4/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --mem.*/#SBATCH --mem=8G/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --job-name.*/#SBATCH --job-name=ODTB-randomise/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    
+    cd $rootdir
+    
+    if [[ "$design" == "baseline" ]]; then
+        for vol in "${volumes[@]}"
+        do
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running randomise script for vol ${vol}."
+            sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-misc_randomise.sh --dir ${vol}
+        done
+    elif [[ "$design" == "delta" ]]; then
+        for vol in "${volumes[@]}"
+        do
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running randomise script for vol ${vol}."
+            sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-misc_randomise_delta.sh --dir ${vol}
+        done
+    else
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Must specify design (baseline or delta) with flag - not running anything."
+    fi
+    
+elif [[ "$step" == "vba_randomise" ]]; then
+    #########################################
+    # misc - RANDOMISE
+    #########################################
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Doing randomise"
+    
+    sed -i 's/^#SBATCH --time .*/#SBATCH --time 16:00:00/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --cpus-per-task.*/#SBATCH --cpus-per-task=4/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --mem.*/#SBATCH --mem=8G/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    sed -i 's/^#SBATCH --job-name.*/#SBATCH --job-name=ODTB-randomise/' "${scripts_dir}/ODTB-0_job-submitter.sbatch"
+    
+    cd $rootdir
+    if [[ "$design" == "baseline" ]]; then
+        for vol in "${volumes[@]}"
+        do
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running randomise script for vol ${vol}."
+            sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-misc_randomise_v2.sh --dir ${vol}
+        done
+    elif [[ "$design" == "delta" ]]; then
+        for vol in "${volumes[@]}"
+        do
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running randomise script for vol ${vol}."
+            sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-misc_randomise_v2_delta.sh --dir ${vol}
+        done
+    elif [[ "$design" == "correlate" ]]; then
+        for vol in "${volumes[@]}"
+        do
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running randomise script for vol ${vol}."
+            sbatch ${scripts_dir}/ODTB-0_job-submitter.sbatch --config $config_path --script ${scripts_dir}/ODTB-misc_randomise_v2_corr.sh --dir ${vol}
+        done
+    else
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Must specify design (baseline or delta) with flag - not running anything."
+    fi
 
 else
     echo "Choose a valid option! [fit | check_fit | combine_fit_outputs | reg | roi | combine_roi_outputs | vba_avg | vba_compare | tract | tbss]"

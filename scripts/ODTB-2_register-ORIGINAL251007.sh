@@ -43,21 +43,17 @@ if [[ "$organism" == "mouse" ]]; then
 
     template=${atlas_path}/mouse/P56_Atlas_100um.nii.gz
     init_txfm=${atlas_path}/mouse/mouse_S0_to_ref.mat
-    reg_method="ants"
     
 elif [[ "$organism" == "rat" ]]; then
 
     template=${atlas_path}/rat/WHS_SD_rat_BRAIN_FA.nii.gz
     init_txfm=${atlas_path}/rat/rat_S0_to_ref.mat
-    reg_method="ants"
     
 elif [[ "$organism" == "human" ]]; then
 
     template=${atlas_path}/human/FSL_HCP1065_FA_1mm.nii.gz
-    reg_method="ants"
     
 fi
-
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Detected organism as ${organism}; registering to:"
 echo "  - ${template}"
@@ -242,24 +238,16 @@ fslmaths ${in_vol//.nii.gz}_flirt.nii.gz -mas reg/template_mask.nii.gz ${in_vol/
 
 if [[ "$organism" == "mouse" ]]; then
 
-    if [[ "$reg_method" == "ants" ]]; then
-    
-        antsRegistration --dimensionality 3 --float 0 \
-            --output [reg/subj_to_template,reg/subj_to_templateWarped.nii.gz,reg/subj_to_templateInverseWarped.nii.gz] \
-            --interpolation Linear --use-histogram-matching 0 --winsorize-image-intensities [0.005,0.995] \
-            --initial-moving-transform [${in_vol//.nii.gz}_flirt.nii.gz,$template,1] \
-            --transform Affine[0.1] \
-            --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
-            --convergence [2000x700x550x200,1e-10,15] --shrink-factors 4x2x1x1 --smoothing-sigmas 3x2x1x0vox \
-            --transform BSplineSyN[0.1,26,0,3] \
-            --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
-            --convergence [100x70x50x20,1e-6,10] --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox
-            
-    elif [[ "$reg_method" == "fnirt" ]]; then
-    
-        fnirt --in=$in_vol --ref=$template --warpres=2,2,2 --biasres=10,10,10 --aff=$subj_txfm --iout=${in_vol//.nii.gz}_reg.nii.gz --cout=reg/warp.nii.gz
-        
-    fi
+    antsRegistration --dimensionality 3 --float 0 \
+        --output [reg/subj_to_template,reg/subj_to_templateWarped.nii.gz,reg/subj_to_templateInverseWarped.nii.gz] \
+        --interpolation Linear --use-histogram-matching 0 --winsorize-image-intensities [0.005,0.995] \
+        --initial-moving-transform [${in_vol//.nii.gz}_flirt.nii.gz,$template,1] \
+        --transform Affine[0.1] \
+        --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
+        --convergence [2000x700x550x200,1e-10,15] --shrink-factors 4x2x1x1 --smoothing-sigmas 3x2x1x0vox \
+        --transform BSplineSyN[0.1,26,0,3] \
+        --metric CC[${in_vol//.nii.gz}_flirt.nii.gz,$template,1,8] \
+        --convergence [100x70x50x20,1e-6,10] --shrink-factors 8x4x2x1 --smoothing-sigmas 3x2x1x0vox
         
 elif [[ "$organism" == "rat" || "$organism" == "human" ]]; then
 
@@ -306,20 +294,11 @@ do
         -out ${vol//.nii.gz}_flirt.nii.gz
     
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Registering"
-    
-    if [[ "$reg_method" == "ants" ]]; then
-    
-        antsApplyTransforms -d 3 \
-            -r $template \
-            -i ${vol//.nii.gz}_flirt.nii.gz -n Linear \
-            -t [reg/subj_to_template0GenericAffine.mat,1] [reg/subj_to_template1InverseWarp.nii.gz,0] \
-            -o ${vol%.nii.gz}_reg.nii.gz --float -v
-            
-    elif [[ "$reg_method" == "fnirt" ]]; then
-    
-        applywarp -i ${vol} -r $template -o ${vol%.nii.gz}_reg.nii.gz -w reg/warp.nii.gz
-        
-    fi
+    antsApplyTransforms -d 3 \
+        -r $template \
+        -i ${vol//.nii.gz}_flirt.nii.gz -n Linear \
+        -t [reg/subj_to_template0GenericAffine.mat,1] [reg/subj_to_template1InverseWarp.nii.gz,0] \
+        -o ${vol%.nii.gz}_reg.nii.gz --float -v
     
     cp ${vol%.nii.gz}_reg.nii.gz ${vol_dir}_reg_output/${vol_dir}_${vol%.nii.gz}_reg.nii.gz
     
@@ -327,4 +306,3 @@ done
 
 mv ${vol_dir}_reg_output ../batch_reg_output
 cd ..
-

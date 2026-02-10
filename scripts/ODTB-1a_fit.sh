@@ -80,9 +80,9 @@ bval=$(find . -name "*.bval")
 bvec=$(find . -name "*.bvec")
 
 dipy_patch_rad=2
-if [[ "$organism" == "mouse" ]]; then dipy_patch_rad=3; fi
+if [[ "$organism" == "mouse" ]]; then dipy_patch_rad=2; fi
 if [[ "$organism" == "rat" ]]; then dipy_patch_rad=3; fi
-if [[ "$organism" == "human" ]]; then dipy_patch_rad=16; fi
+if [[ "$organism" == "human" ]]; then dipy_patch_rad=8; fi
 
 echo $dwi
 fslmaths $dwi -Tmean -bin output/initial_dti_fullbinmask.nii.gz
@@ -121,8 +121,14 @@ if [ "$organism" != "human" ]; then
 
 else
 
-    bet $t2_dat ${t2_dat//.nii.gz}_bet.nii.gz -m
-    mv ${t2_dat//.nii.gz}_bet_mask.nii.gz $brainmask
+    # update - took out f; default 0.5, larger for smaller mask
+    
+    fslmaths $dwi -Tmean "output/initial_dti_tmean.nii.gz"
+    bet "output/initial_dti_tmean.nii.gz" "output/initial_dti_tmean_bet.nii.gz" -m -R
+    mv "output/initial_dti_tmean_bet.nii.gz" $brainmask
+    
+    # extra alternative step if needed to trim skull from mask
+    # fslmaths ${t2_dat//.nii.gz}_bet_mask.nii.gz -bin -s 6 -thr 0.95 -bin -s 4 -thr 0.05 -bin -mul $t2_dat -bin -s 2 -thr 0.2 -bin $brainmask
 
 fi
 
@@ -130,6 +136,7 @@ fslmaths $t2_dat -s 1 -thrP 15 -bin $headmask
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Initializing script for slice removal and MP-PCA"
 /opt/conda/envs/diffusionmritoolkit/bin/python ${scripts_dir}/ODTB-1b_filt-mppca.py ${rootdir}/${d} $dwi $bval $bvec output/initial_dti $do_mppca $do_slice $dipy_patch_rad
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Done running script for slice removal and MP-PCA"
 
 if [[ "$do_mppca" == 0 ]]; then
     if [[ "$do_slice" == 1 ]]; then
@@ -259,7 +266,12 @@ if [[ "$do_slice" == 1 ]]; then
     
 else
     
-    mask=$headmask
+    if  [[ "$organism" == "human" ]]; then
+        mask=$brainmask
+    else
+        mask=$headmask
+    fi
+    
     protocol=protocol.prtcl
     
     #######################################

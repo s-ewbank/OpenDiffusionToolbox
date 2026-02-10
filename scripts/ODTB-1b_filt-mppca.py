@@ -168,6 +168,7 @@ elif do_mppca==1:
     raw_dwi_mppca = mppca(raw_dwi, patch_radius=[patch_rad, patch_rad, patch_rad], mask=headmask)
     raw_dwi_mppca_img=nib.Nifti1Image(raw_dwi_mppca, affine)
     nib.save(raw_dwi_mppca_img,path+'/raw_dwi_mppca.nii.gz')
+    print(datetime.now().strftime("[%Y-%m-%d %H:%M] ") + f'Done with MP-PCA')
 
 
 
